@@ -1,5 +1,7 @@
 package com.trivoko.catalog;
 
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -7,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
+import com.trivoko.catalog.dto.VariantView;
+import com.trivoko.common.BadRequestException;
 import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 
@@ -16,10 +20,15 @@ import com.trivoko.common.ResourceNotFoundException;
 public class ProductService {
 
 	private final ProductRepository products;
+	private final ProductVariantRepository variants;
+	private final PriceHistoryRepository priceHistory;
 	private final CategoryService categoryService;
 
-	ProductService(ProductRepository products, CategoryService categoryService) {
+	ProductService(ProductRepository products, ProductVariantRepository variants,
+			PriceHistoryRepository priceHistory, CategoryService categoryService) {
 		this.products = products;
+		this.variants = variants;
+		this.priceHistory = priceHistory;
 		this.categoryService = categoryService;
 	}
 
@@ -53,6 +62,32 @@ public class ProductService {
 				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
 			.map(CatalogMapper::toDetail)
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/**
+	 * The ONLY way a variant's price changes (seller dashboard in Phase 5, admin, flash sale ...).
+	 * Because everything goes through here, price_history never misses a change and the
+	 * product's "from" price always matches its cheapest variant.
+	 */
+	@Transactional
+	public VariantView changePrice(Long variantId, BigDecimal newPrice, BigDecimal newMrp) {
+		if (newPrice == null || newPrice.signum() <= 0) {
+			throw new BadRequestException("price must be greater than 0");
+		}
+		if (newMrp == null || newMrp.compareTo(newPrice) < 0) {
+			throw new BadRequestException("MRP must not be lower than the price");
+		}
+		ProductVariant variant = variants.findById(variantId)
+			.orElseThrow(() -> new ResourceNotFoundException("Variant", variantId));
+
+		BigDecimal oldPrice = variant.getPrice();
+		if (oldPrice.compareTo(newPrice) != 0) {
+			priceHistory.save(new PriceHistory(variant, oldPrice, newPrice));
+		}
+		variant.setPrice(newPrice);
+		variant.setMrp(newMrp);
+		variant.getProduct().refreshPriceFrom();
+		return CatalogMapper.toView(variant);
 	}
 
 }
