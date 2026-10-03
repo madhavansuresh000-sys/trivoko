@@ -18,13 +18,13 @@
 - ✅ React shows "Backend: UP" (laptop + phone, light + dark)
 - ✅ `docker compose up -d` starts MySQL + Mailpit
 - ✅ Sketches approved
-- ⏳ CI green on GitHub - **not pushed yet**: GitHub was not signed in inside Claude's browser pane
+- ✅ CI green on GitHub - repo https://github.com/madhavansuresh000-sys/trivoko created and pushed (update 12:14), CI #1 green (Backend 1m3s, Frontend 13s)
+
+**PHASE 0 COMPLETE.**
 
 ## Next session - start here
-1. Madhavan signs in to GitHub in Claude's browser pane (approved already: create public repo `trivoko` and push)
-2. Claude creates the repo, pushes `main`, checks CI green → **Phase 0 complete**
-3. Madhavan answers the 3 explain-it-back questions (modular monolith, why Docker, what CI does)
-4. Start **Phase 1 - Catalogue API** (Madhavan: create a free Cloudinary account for step 9)
+1. Madhavan answers the 3 explain-it-back questions (modular monolith, why Docker, what CI does)
+2. Start **Phase 1 - Catalogue API** (Madhavan: create a free Cloudinary account for step 9)
 
 ## How to start the apps next time
 - Start Docker Desktop, then in `03_TriVoKo_Main_Project`: `docker compose up -d`
