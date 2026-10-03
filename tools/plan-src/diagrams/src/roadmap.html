@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>The 13 phases (each phase ends with a working, tested, pushed app)</h2>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+ <div class="b gray"><b>0 &middot; Setup</b><span>repo, Docker, CI, sketches, sample data plan</span></div>
+ <div class="b"><b>1 &middot; Catalogue API</b><span>categories, products, variants, Cloudinary photos</span></div>
+ <div class="b"><b>2 &middot; Accounts &amp; roles</b><span>customer, seller (approved), admin, JWT</span></div>
+ <div class="b"><b>3 &middot; Shop frontend</b><span>home, listing, product page, cart</span></div>
+ <div class="b"><b>4 &middot; Checkout &amp; pay</b><span>address, stock hold, Stripe, order split, invoice</span></div>
+ <div class="b"><b>5 &middot; Seller dashboard</b><span>products, stock, ship orders, earnings</span></div>
+ <div class="b"><b>6 &middot; Admin panel</b><span>approvals, users, orders, coupons, reports</span></div>
+ <div class="b amber"><b>7 &middot; &#9889; Flash sale</b><span>atomic stock, countdown, k6 load test<br><i>you type the stock logic</i></span></div>
+ <div class="b amber"><b>8 &middot; &#8617; Returns</b><span>state machine, Stripe partial refund<br><i>you type the state machine</i></span></div>
+ <div class="b"><b>9 &middot; Reviews &amp; alerts</b><span>verified reviews, wishlist, &#128276; price drops</span></div>
+ <div class="b amber"><b>10 &middot; &#128269; Smart search</b><span>Hibernate Search, autocomplete, also-bought</span></div>
+ <div class="b"><b>11 &middot; Test &amp; polish</b><span>Playwright E2E, security, speed, phone check</span></div>
+ <div class="b dark" style="grid-column:span 4"><b>12 &middot; &#128640; Launch</b><span>live link (free or paid), README with GIFs, 3-minute demo video, resume bullets, LinkedIn post, tag v1.0</span></div>
+</div>
+<div class="lbl" style="margin-top:16px;font-size:17px">Must-have core = phases 0-8 (a complete marketplace with the two strongest standouts). Phases 9-10 make it shine. If time runs short, 9 and 10 can be shortened without breaking anything.</div></body>

@@ -1,0 +1,35 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>Core feature: one cart, many sellers, one payment, split packages</h2>
+<div class="row" style="align-items:flex-start">
+ <div class="b" style="width:330px"><b>&#128722; Cart</b><ul><li>Phone &mdash; Seller A &mdash; &#8377;12,000</li><li>Book &mdash; Seller A &mdash; &#8377;400</li><li>Shoes &mdash; Seller B &mdash; &#8377;3,000</li></ul></div>
+ <div class="arrow" style="margin-top:60px">&#10140;</div>
+ <div class="b amber" style="width:310px"><b>Checkout</b><span>address &middot; coupon<br>stock held for 10 minutes<br>price checked again on the server</span></div>
+ <div class="arrow" style="margin-top:60px">&#10140;</div>
+ <div class="b dark" style="width:300px"><b>ONE payment</b><span>&#8377;15,400 via Stripe<br>order TV-1001 = PAID</span></div>
+</div>
+<div class="row" style="margin:10px 0 0 860px"><div class="arrow">&#8595;</div><div class="lbl">split automatically by seller</div></div>
+<div class="row" style="gap:30px;margin-top:6px">
+ <div class="b green" style="width:640px"><b>Package 1 &rarr; Seller A</b><span>Phone + Book &middot; &#8377;12,400</span><div style="margin-top:8px"><span class="chip" style="background:#bbf7d0">PLACED</span>&rarr;<span class="chip" style="background:#bbf7d0">PACKED</span>&rarr;<span class="chip" style="background:#bbf7d0">SHIPPED</span>&rarr;<span class="chip" style="background:#bbf7d0">DELIVERED</span></div></div>
+ <div class="b green" style="width:640px"><b>Package 2 &rarr; Seller B</b><span>Shoes &middot; &#8377;3,000</span><div style="margin-top:8px"><span class="chip" style="background:#bbf7d0">PLACED</span>&rarr;<span class="chip" style="background:#bbf7d0">PACKED</span>&rarr;<span class="chip" style="background:#bbf7d0">SHIPPED</span>&rarr;<span class="chip" style="background:#bbf7d0">DELIVERED</span></div></div>
+</div>
+<div class="lbl" style="margin-top:18px;font-size:18px;text-align:left">The customer sees two tracking timelines inside one order. Seller A never sees Seller B's items or the customer's other purchases. Each package keeps its own money line: 90% to the seller's earnings, 10% TriVoKo fee.</div></body>

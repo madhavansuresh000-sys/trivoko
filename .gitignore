@@ -1,0 +1,29 @@
+# ---- Java / Spring Boot (backend) ----
+target/
+*.class
+*.log
+.mvn/wrapper/maven-wrapper.jar
+
+# ---- React / Node (frontend, tools) ----
+node_modules/
+dist/
+.vite/
+coverage/
+
+# ---- Playwright / k6 output ----
+e2e/test-results/
+e2e/playwright-report/
+
+# ---- Secrets: never push passwords or keys ----
+.env
+.env.*
+!.env.example
+application-local.yml
+
+# ---- Editors and OS ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+~$*

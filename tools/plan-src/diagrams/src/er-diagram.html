@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>Main tables and how they are linked</h2>
+<div class="row" style="align-items:flex-start;gap:18px">
+ <div class="col" style="width:330px">
+  <div class="b"><b>users</b><span>email, password_hash, full_name, phone, status</span></div>
+  <div class="b gray"><b>user_roles</b><span>CUSTOMER / SELLER / ADMIN</span></div>
+  <div class="b"><b>addresses</b><span>user, name, line1, city, state, pincode, default</span></div>
+  <div class="b amber"><b>sellers</b><span>user (owner), shop_name, city, status PENDING/APPROVED/BLOCKED</span></div>
+  <div class="b gray"><b>seller_ledger</b><span>seller, package, amount +/&minus;, reason</span></div>
+ </div>
+ <div class="col" style="width:330px">
+  <div class="b gray"><b>categories</b><span>name, slug, parent (tree)</span></div>
+  <div class="b dark"><b>products</b><span>seller, category, title, brand, description, status, rating_avg</span></div>
+  <div class="b"><b>product_variants</b><span>product, sku, size/colour, price, mrp, stock, version</span></div>
+  <div class="b gray"><b>product_images</b><span>product, cloudinary_url, position</span></div>
+  <div class="b gray"><b>price_history</b><span>variant, old &rarr; new price, changed_at</span></div>
+ </div>
+ <div class="col" style="width:330px">
+  <div class="b"><b>carts / cart_items</b><span>user (or guest token), variant, qty</span></div>
+  <div class="b dark"><b>orders</b><span>number TV-1001, customer, address copy, total, coupon, status</span></div>
+  <div class="b dark"><b>packages</b><span>order, seller, status, tracking_no, version</span></div>
+  <div class="b"><b>order_items</b><span>package, variant, title copy, price copy, qty</span></div>
+  <div class="b"><b>payments / refunds</b><span>order, stripe ids, amount, status</span></div>
+ </div>
+ <div class="col" style="width:330px">
+  <div class="b amber"><b>flash_sales / flash_sale_items</b><span>start, end, variant, sale_price, limit, sold</span></div>
+  <div class="b amber"><b>return_requests</b><span>order_item, reason, photo, status</span></div>
+  <div class="b"><b>reviews</b><span>order_item (verified buyer), rating 1-5, text</span></div>
+  <div class="b"><b>wishlist_items</b><span>user, variant, price_when_added</span></div>
+  <div class="b gray"><b>coupons &middot; notifications &middot; audit_log</b></div>
+ </div>
+</div>
+<div class="lbl" style="text-align:left;margin-top:18px;font-size:18px">Read it like this: a <b>seller</b> owns many <b>products</b>; a product has <b>variants</b> (size/colour, each with its own price and stock); an <b>order</b> is split into <b>packages</b> (one per seller); each package has <b>order_items</b>. Order items COPY the title and price, so later price changes never change old orders.</div></body>

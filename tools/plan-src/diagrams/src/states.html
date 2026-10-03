@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>Package states (one package = one seller's part of an order)</h2>
+<div class="row" style="gap:14px">
+ <div class="b gray" style="width:230px"><b style="font-size:19px">PENDING_PAYMENT</b><span>stock held 10 min</span></div><div class="arrow">&#10140;</div>
+ <div class="b" style="width:160px"><b>PLACED</b><span>paid</span></div><div class="arrow">&#10140;</div>
+ <div class="b" style="width:160px"><b>PACKED</b><span>by seller</span></div><div class="arrow">&#10140;</div>
+ <div class="b blue" style="width:170px"><b>SHIPPED</b><span>tracking no.</span></div><div class="arrow">&#10140;</div>
+ <div class="b green" style="width:180px"><b>DELIVERED</b><span>7-day return window starts</span></div>
+</div>
+<div class="row" style="gap:14px;margin-top:14px">
+ <div class="b red" style="width:230px"><b>EXPIRED</b><span>not paid in time,<br>stock back</span></div>
+ <div class="lbl" style="width:540px;text-align:left">&#8593; unpaid hold ends (job every minute)</div>
+ <div class="b red" style="width:300px"><b>CANCELLED</b><span>customer or seller cancels before SHIPPED &rarr; refund + stock back</span></div>
+</div>
+<h2 style="margin-top:34px">Return states (standout feature #2)</h2>
+<div class="row" style="gap:14px">
+ <div class="b amber" style="width:230px"><b>REQUESTED</b><span>reason + photo,<br>within 7 days</span></div><div class="arrow">&#10140;</div>
+ <div class="b" style="width:190px"><b>APPROVED</b><span>by seller (or admin)</span></div><div class="arrow">&#10140;</div>
+ <div class="b blue" style="width:190px"><b>PICKED_UP</b><span>item collected</span></div><div class="arrow">&#10140;</div>
+ <div class="b green" style="width:300px"><b>REFUNDED</b><span>Stripe partial refund &middot; stock +1<br>seller earnings &minus;</span></div>
+</div>
+<div class="row" style="gap:14px;margin-top:14px">
+ <div class="b red" style="width:230px"><b>REJECTED</b><span>by seller, with reason</span></div><div class="arrow">&#10140;</div>
+ <div class="b amber" style="width:230px"><b>ESCALATED</b><span>customer disagrees</span></div><div class="arrow">&#10140;</div>
+ <div class="b dark" style="width:380px"><b>ADMIN decides</b><span>&rarr; APPROVED or CLOSED (final)</span></div>
+</div>
+<div class="lbl" style="margin-top:16px;text-align:left;font-size:17px">Every move is checked by a state machine in Java (enum with allowed next states), exactly like EventHub's event approval &mdash; an illegal move (e.g. REFUNDED &rarr; REQUESTED) is a 409 error.</div></body>

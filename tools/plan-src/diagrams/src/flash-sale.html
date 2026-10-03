@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>Standout feature #1: the flash sale that never oversells</h2>
+<div class="row" style="align-items:stretch">
+ <div class="b amber" style="width:340px"><b>12:00:00 PM</b><span>"100 phones at &#8377;999"<br>live countdown on the home page</span><div class="big" style="margin-top:6px">&#9889;</div></div>
+ <div class="arrow" style="align-self:center">&#10140;</div>
+ <div class="b" style="width:300px"><b>5,000 people click "Buy"</b><span>in the same second</span><div class="big" style="margin-top:6px">&#128101;&#128101;&#128101;</div></div>
+ <div class="arrow" style="align-self:center">&#10140;</div>
+ <div class="b dark" style="width:560px"><b>One atomic database step</b><span style="font-family:Consolas;font-size:16px;display:block;margin-top:8px;text-align:left">UPDATE flash_sale_items<br>&nbsp;&nbsp;SET sold = sold + 1<br>&nbsp;WHERE id = 7 AND sold &lt; 100;</span><span style="display:block;margin-top:8px">1 row changed = you got it &middot; 0 rows = sold out<br>+ UNIQUE(sale, customer) = max 1 per person</span></div>
+</div>
+<div class="row" style="gap:30px;margin-top:22px">
+ <div class="b green" style="width:660px"><b>&#9989; 100 people</b><span>get a 10-minute hold &rarr; pay &rarr; order PLACED<br>did not pay? the hold expires and the phone goes back into the sale</span></div>
+ <div class="b red" style="width:660px"><b>&#10060; 4,900 people</b><span>see "Sold out" instantly &mdash; no waiting, no error page,<br>no oversell, no money taken</span></div>
+</div>
+<div class="b gray" style="margin-top:22px"><b>Proof for interviews</b><span>Java test: 1,000 threads, 100 items &rarr; exactly 100 winners (like EventHub's 100-thread seat test) &middot; k6 load test: 5,000 virtual users against the running app &rarr; graph of response times in the README &middot; Redis is added ONLY if these numbers are bad</span></div></body>

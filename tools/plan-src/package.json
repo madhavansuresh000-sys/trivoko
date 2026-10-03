@@ -1,0 +1,1 @@
+{ "name": "trivoko-plan", "private": true, "dependencies": { "docx": "^9.8.1" } }

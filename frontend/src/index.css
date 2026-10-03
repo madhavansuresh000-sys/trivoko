@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* Dark mode is switched by a "dark" class on <html> (see src/hooks/useTheme.js) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * TriVoKo design tokens. Use them as Tailwind classes, e.g. bg-brand-700, text-accent-600.
+ * brand  = teal    (trust: buttons, links, the logo)
+ * accent = saffron (energy: deals, flash sale, prices off) - use for highlights, not for long text.
+ * Status colours come from Tailwind: green = in stock / delivered, amber = pending, red = sold out / error.
+ */
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+
+  --color-accent-50: #fff7ed;
+  --color-accent-100: #ffedd5;
+  --color-accent-200: #fed7aa;
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+  --color-accent-700: #c2410c;
+  --color-accent-800: #9a3412;
+  --color-accent-900: #7c2d12;
+}
+
+@layer base {
+  html {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply dark:bg-slate-950 dark:text-slate-200;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  /* chart colours (Recharts draws SVG, so it reads CSS variables, not Tailwind classes); dark = own steps */
+  :root {
+    --chart-mark: #0f766e;   /* brand-700 */
+    --chart-grid: #e2e8f0;   /* slate-200 */
+    --chart-axis: #64748b;   /* slate-500 */
+    --chart-surface: #ffffff;
+  }
+  html.dark {
+    --chart-mark: #14b8a6;   /* brand-500 */
+    --chart-grid: #1e293b;   /* slate-800 */
+    --chart-axis: #94a3b8;   /* slate-400 */
+    --chart-surface: #0f172a; /* slate-900 */
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+}

@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1f2937;padding:28px;width:1400px}
+.row{display:flex;align-items:center;gap:18px}
+.col{display:flex;flex-direction:column;gap:14px}
+.b{border:2px solid #0f766e;background:#f0fdfa;border-radius:12px;padding:14px 18px;text-align:center}
+.b b{display:block;font-size:22px;color:#134e4a}
+.b span{font-size:16px;color:#374151}
+.b ul{text-align:left;font-size:17px;color:#1f2937;margin:8px 0 0 20px;line-height:1.55}
+.dark{background:#134e4a;border-color:#134e4a}.dark b,.dark span,.dark ul{color:#fff}
+.amber{background:#fff7ed;border-color:#f97316}.amber b{color:#9a3412}
+.green{background:#dcfce7;border-color:#15803d}.green b{color:#14532d}
+.red{background:#fee2e2;border-color:#b91c1c}.red b{color:#7f1d1d}
+.gray{background:#f3f4f6;border-color:#9ca3af}.gray b{color:#374151}
+.blue{background:#eff6ff;border-color:#2563eb}.blue b{color:#1e3a8a}
+.arrow{font-size:34px;color:#6b7280;line-height:1}
+.lbl{font-size:16px;color:#4b5563;text-align:center}
+.frame{border:3px dashed #134e4a;border-radius:16px;padding:18px}
+.frame>h3{font-size:20px;color:#134e4a;text-align:center;margin-bottom:12px}
+h2{font-size:26px;color:#134e4a;margin-bottom:18px}
+.chip{display:inline-block;border-radius:999px;padding:4px 12px;font-size:15px;font-weight:600;margin:3px}
+.big{font-size:44px}
+</style><body><h2>TriVoKo architecture: one Spring Boot app with walled modules</h2>
+<div class="row" style="align-items:stretch">
+ <div class="col" style="width:270px;justify-content:center">
+  <div class="b"><b>Browser</b><span>React 19 + Vite<br>Tailwind &middot; Redux Toolkit<br>React Router &middot; Axios</span></div>
+  <div class="lbl">JSON over HTTPS<br>JWT in httpOnly cookie<br>CSRF header</div>
+ </div>
+ <div class="arrow" style="align-self:center">&#10140;</div>
+ <div class="frame" style="width:640px"><h3>Spring Boot 4 API (Java 25) &mdash; modular monolith</h3>
+  <div class="b amber"><b>Security</b><span>JWT cookie filter &middot; CSRF &middot; CORS &middot; roles CUSTOMER / SELLER / ADMIN &middot; rate limits</span></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">
+   <div class="b"><b>catalog</b></div><div class="b"><b>seller</b></div><div class="b"><b>cart</b></div><div class="b"><b>order</b></div>
+   <div class="b"><b>payment</b></div><div class="b amber"><b>flashsale</b></div><div class="b amber"><b>returns</b></div><div class="b"><b>review</b></div>
+   <div class="b"><b>wishlist</b></div><div class="b"><b>coupon</b></div><div class="b amber"><b>search</b></div><div class="b"><b>notify</b></div>
+   <div class="b"><b>admin</b></div><div class="b"><b>analytics</b></div><div class="b"><b>user</b></div><div class="b gray"><b>common</b></div>
+  </div>
+  <div class="lbl" style="margin-top:12px">Rule: a module calls another module only through its public service &mdash; never its tables or repositories.<br>Orange = standout features. Each module = one Java package (controller, service, repository, entity, dto).</div>
+ </div>
+ <div class="arrow" style="align-self:center">&#10140;</div>
+ <div class="col" style="width:330px;justify-content:center">
+  <div class="b dark"><b>MySQL 8.4</b><span>all data &middot; Flyway migrations</span></div>
+  <div class="b"><b>Stripe (test mode)</b><span>card payments, refunds, signed webhooks</span></div>
+  <div class="b"><b>Cloudinary</b><span>product photos (free tier)</span></div>
+  <div class="b"><b>Email</b><span>Mailpit locally, real SMTP when live</span></div>
+  <div class="b gray"><b>Redis (optional)</b><span>only if the load test says we need it</span></div>
+ </div>
+</div></body>

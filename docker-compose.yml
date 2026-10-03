@@ -1,0 +1,38 @@
+# project name for Docker (containers are grouped as "trivoko")
+name: trivoko
+
+# TriVoKo local services - start with:  docker compose up -d
+# Passwords come from the .env file (never pushed to GitHub). See .env.example.
+# Ports are different from EventHub (3306 / 1025 / 8025) so both projects can run at the same time.
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: trivoko-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: trivoko
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Kolkata
+    ports:
+      - "3307:3306"   # laptop port 3307 -> MySQL's own port 3306 inside the container
+    volumes:
+      - mysql-data:/var/lib/mysql   # keeps your data when the container stops
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: trivoko-mailpit
+    restart: unless-stopped
+    ports:
+      - "1026:1025"   # SMTP: Spring Boot sends emails here
+      - "8026:8025"   # Web inbox: open http://localhost:8026
+
+volumes:
+  mysql-data:
+    name: trivoko_mysql-data

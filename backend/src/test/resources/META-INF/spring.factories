@@ -1,0 +1,2 @@
+# every Spring test context uses the throwaway MySQL from Testcontainers
+org.springframework.context.ApplicationContextInitializer=com.trivoko.MySqlTestDatabase
