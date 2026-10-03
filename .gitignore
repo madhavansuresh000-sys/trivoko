@@ -27,3 +27,6 @@ application-local.yml
 .DS_Store
 Thumbs.db
 ~$*
+
+# ---- Claude work notes (plan ledgers) ----
+.superpowers/
