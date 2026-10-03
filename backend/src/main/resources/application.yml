@@ -11,6 +11,9 @@ spring:
     hibernate:
       ddl-auto: validate    # Flyway creates tables; Hibernate only checks them
     open-in-view: false
+    properties:
+      # load lazy lists (variants, images ...) for up to 50 products in ONE query, not one query each (N+1)
+      hibernate.default_batch_fetch_size: 50
   flyway:
     enabled: true
   cache:

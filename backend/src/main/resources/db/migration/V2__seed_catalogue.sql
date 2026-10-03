@@ -15,7 +15,7 @@ INSERT INTO sellers (id, shop_name, slug, city, description, status) VALUES
 
 INSERT INTO categories (id, name, slug, parent_id, sort_order) VALUES
   (1, 'Mobiles & Accessories', 'mobiles-accessories', NULL, 1),
-  (2, 'Mobiles', 'mobiles', 1, 1),
+  (2, 'Mobile phones', 'phones', 1, 1),
   (3, 'Cases & covers', 'cases-covers', 1, 2),
   (4, 'Chargers & cables', 'chargers-cables', 1, 3),
   (5, 'Laptops & Computers', 'laptops-computers', NULL, 2),

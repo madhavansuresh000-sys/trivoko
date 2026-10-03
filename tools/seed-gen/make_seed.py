@@ -61,7 +61,7 @@ VARIANT_KINDS = {
 # top category -> (slug, seller slug, [(sub name, sub slug, [ (product name, brand, price, kind), x4 ])])
 C = [
     ("Mobiles & Accessories", "mobiles-accessories", "chennai-mobiles", [
-        ("Mobiles", "mobiles", [
+        ("Mobile phones", "phones", [
             ("Volta V12 5G", "Volta", 12999, "phone"),
             ("Nimbus N8 Pro", "Nimbus", 18999, "phone"),
             ("Kaveri K5", "Kaveri", 8999, "colour2"),

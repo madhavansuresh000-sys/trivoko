@@ -2,6 +2,7 @@ package com.trivoko.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,8 +14,8 @@ import com.trivoko.common.SecurityProblems;
 /**
  * Who may call which URL.
  *
- * Phase 0: only the health check and Swagger are open; every other URL answers 401.
- * Phase 1 opens the public catalogue (GET products, categories, sellers).
+ * Open to everyone: the health check, Swagger (until Phase 2) and BROWSING the catalogue
+ * (GET products, categories, sellers). Every other URL answers 401.
  * Phase 2 adds login (JWT cookie + CSRF, copied from EventHub) and locks Swagger to ADMIN.
  */
 @Configuration
@@ -31,6 +32,8 @@ public class SecurityConfig {
 			.cors(Customizer.withDefaults())
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/health", "/actuator/health").permitAll()
+				// Phase 1: the shop window is public - anyone may BROWSE (GET only)
+				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
 				// TEMPORARY until Phase 2: the API map is open while there are no logins yet
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 				.anyRequest().authenticated())
