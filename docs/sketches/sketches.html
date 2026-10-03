@@ -1,0 +1,216 @@
+<!doctype html>
+<!-- TriVoKo Phase 0 sketches: 6 key pages. Each page is shown alone with #home, #search, #product, #cart, #checkout, #seller
+     (rendered to PNG by tools/sketches/render.ps1). Low-detail on purpose: layout and content, not final pixels. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TriVoKo sketches</title>
+<style>
+  :root { --brand:#0f766e; --brand8:#115e59; --brand1:#ccfbf1; --brand0:#f0fdfa; --acc:#f97316; --acc1:#ffedd5; --ink:#0f172a; --mut:#64748b; --line:#e2e8f0; --bg:#f8fafc; }
+  * { box-sizing:border-box; margin:0; }
+  body { font:14px/1.45 "Segoe UI", system-ui, sans-serif; color:var(--ink); background:#fff; }
+  .page { display:none; width:1200px; min-height:860px; background:var(--bg); }
+  .page:target { display:block; }
+  .nav { height:60px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:18px; padding:0 28px; }
+  .logo { font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px; }
+  .logo i { width:30px; height:30px; border-radius:8px; background:var(--brand); display:inline-block; position:relative; }
+  .logo i::after { content:""; position:absolute; left:9px; top:10px; width:12px; height:12px; background:#fff; border-radius:2px; }
+  .vo { color:var(--brand); } .ko { color:var(--acc); }
+  .search { flex:1; height:38px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--mut); display:flex; align-items:center; padding:0 12px; }
+  .navr { display:flex; gap:16px; color:#334155; font-weight:600; }
+  .pill { background:var(--brand); color:#fff; border-radius:999px; font-size:11px; padding:0 6px; }
+  .wrap { padding:24px 28px; }
+  .note { position:absolute; background:#fef9c3; border:1px dashed #ca8a04; color:#713f12; font-size:12px; padding:6px 9px; border-radius:6px; max-width:210px; box-shadow:0 2px 4px #0001; }
+  .rel { position:relative; }
+  .box { background:#fff; border:1px solid var(--line); border-radius:14px; }
+  .img { background:repeating-linear-gradient(45deg,#e2e8f0 0 8px,#f1f5f9 8px 16px); border-radius:10px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 18px; border-radius:9px; background:var(--brand); color:#fff; font-weight:700; }
+  .btn.deal { background:var(--acc); color:#111; } .btn.out { background:#fff; color:var(--brand); border:1px solid var(--brand); } .btn.w { width:100%; }
+  .badge { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--acc1); color:#9a3412; }
+  .badge.g { background:#dcfce7; color:#166534; } .badge.b { background:var(--brand1); color:var(--brand8); } .badge.a { background:#fef3c7; color:#92400e; }
+  h1 { font-size:26px; } h2 { font-size:18px; margin-bottom:10px; } h3 { font-size:14px; }
+  .mut { color:var(--mut); } .price { font-weight:800; font-size:16px; } .mrp { color:var(--mut); text-decoration:line-through; font-size:12px; margin-left:6px; } .off { color:#15803d; font-weight:700; font-size:12px; margin-left:6px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; }
+  .card .img { height:120px; margin-bottom:8px; }
+  .row { display:flex; gap:20px; } .between { display:flex; justify-content:space-between; align-items:center; }
+  .chip { display:inline-block; border:1px solid var(--line); background:#fff; border-radius:999px; padding:4px 12px; margin:0 6px 6px 0; font-size:12px; }
+  .chip.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .line { height:9px; background:#e2e8f0; border-radius:5px; margin:6px 0; }
+  table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); font-size:13px; } th { color:var(--mut); font-weight:600; }
+  .step { display:flex; align-items:center; gap:8px; font-weight:600; } .dot { width:24px; height:24px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; font-size:12px; } .dot.off2 { background:#cbd5e1; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. HOME ============ -->
+<section class="page rel" id="home">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div class="search">🔍 Search for products, brands and more</div><div class="navr"><span>Become a seller</span><span>Login</span><span>🛒 <span class="pill">3</span></span></div></div>
+  <div class="wrap">
+    <div style="display:flex;gap:10px;margin-bottom:18px">
+      <span class="chip">📱 Mobiles</span><span class="chip">💻 Laptops</span><span class="chip">🎧 Audio</span><span class="chip">👔 Men</span><span class="chip">👗 Women</span><span class="chip">👟 Footwear</span><span class="chip">🏏 Sports</span><span class="chip">🍳 Home</span><span class="chip">📚 Books</span><span class="chip">🧸 Kids</span>
+    </div>
+    <div class="row">
+      <div style="flex:2;background:var(--brand8);color:#fff;border-radius:18px;padding:30px">
+        <span class="badge">⚡ FLASH SALE</span>
+        <h1 style="margin-top:10px">Wireless headphones ₹999</h1>
+        <p style="color:#99f6e4">100 units only · 1 per customer</p>
+        <p style="font-size:34px;font-weight:800;margin:14px 0;font-family:Consolas">00:04:59</p>
+        <span class="btn deal">Remind me</span>
+      </div>
+      <div style="flex:1" class="box"><div style="padding:18px"><h2>Deals of the day</h2><div class="img" style="height:120px"></div><p style="margin-top:8px"><b>Up to 60% off</b> fashion</p></div></div>
+    </div>
+    <h2 style="margin-top:24px">New arrivals</h2>
+    <div class="grid4">
+      <div class="card"><div class="img"></div><h3>Silicone case for iPhone 15</h3><span class="price">₹499</span><span class="mrp">₹999</span><span class="off">50% off</span><p class="mut">Chennai Mobiles</p></div>
+      <div class="card"><div class="img"></div><h3>Kovai Run Pro shoes</h3><span class="price">₹2,499</span><span class="mrp">₹3,999</span><p class="mut">Kovai Sports</p></div>
+      <div class="card"><div class="img"></div><h3>Cotton kurta</h3><span class="price">₹799</span><p class="mut">Mumbai Style Co</p></div>
+      <div class="card"><div class="img"></div><h3>Steel pressure cooker 5 L</h3><span class="price">₹1,899</span><p class="mut">Salem Steel Home</p></div>
+    </div>
+  </div>
+  <div class="note" style="left:560px;top:330px">Flash-sale banner: countdown uses SERVER time; button turns on at 12:00 (Phase 7)</div>
+  <div class="note" style="left:960px;top:420px">Cart count = items from ALL sellers</div>
+</section>
+
+<!-- ============ 2. SEARCH / LISTING ============ -->
+<section class="page rel" id="search">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div class="search" style="color:var(--ink)">🔍 iphnoe 15 case</div><div class="navr"><span>Login</span><span>🛒</span></div></div>
+  <div class="wrap row">
+    <div style="width:230px" class="box"><div style="padding:16px">
+      <h3>Category</h3><p>Mobile accessories <span class="mut">(18)</span></p><p>Mobiles <span class="mut">(4)</span></p>
+      <h3 style="margin-top:14px">Brand</h3><p>☑ Chennai Mobiles <span class="mut">(9)</span></p><p>☐ Volta <span class="mut">(6)</span></p><p>☐ Arc <span class="mut">(3)</span></p>
+      <h3 style="margin-top:14px">Price</h3><p>₹ 100 — ₹ 2,000</p><div class="line" style="background:var(--brand1)"></div>
+      <h3 style="margin-top:14px">Rating</h3><p>★★★★ & up</p>
+      <p style="margin-top:14px">☑ In stock only</p>
+    </div></div>
+    <div style="flex:1">
+      <div class="between"><div><p class="mut">Showing results for <b style="color:var(--ink)">iphone 15 case</b> (you typed "iphnoe")</p><p class="mut">22 products</p></div><span class="chip">Sort: Relevance ▾</span></div>
+      <div style="margin:10px 0"><span class="chip on">Chennai Mobiles ✕</span><span class="chip on">In stock ✕</span></div>
+      <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
+        <div class="card"><div class="img"></div><h3>Silicone case for iPhone 15</h3><span class="price">₹499</span><span class="off">50% off</span><p class="mut">★ 4.3 (120)</p></div>
+        <div class="card"><div class="img"></div><h3>Clear armour case</h3><span class="price">₹349</span><p class="mut">★ 4.0 (54)</p></div>
+        <div class="card"><div class="img"></div><h3>Leather flip cover</h3><span class="price">₹699</span><p class="mut"><span class="badge a">Only 2 left</span></p></div>
+        <div class="card"><div class="img"></div><h3>MagSafe case</h3><span class="price">₹899</span></div>
+        <div class="card"><div class="img"></div><h3>Rugged case</h3><span class="price">₹599</span></div>
+        <div class="card"><div class="img"></div><h3>Glitter case</h3><span class="price">₹299</span></div>
+      </div>
+      <p style="text-align:center;margin-top:14px" class="mut">‹ 1 2 3 ›</p>
+    </div>
+  </div>
+  <div class="note" style="left:40px;top:470px">Filters + sort are kept in the URL (?q=&brand=&min=) so a link can be shared (Phase 3)</div>
+  <div class="note" style="left:900px;top:612px">Typo fixed + facet counts = smart search (Phase 10)</div>
+</section>
+
+<!-- ============ 3. PRODUCT ============ -->
+<section class="page rel" id="product">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div class="search">🔍 Search</div><div class="navr"><span>Login</span><span>🛒</span></div></div>
+  <div class="wrap">
+    <p class="mut">Footwear › Running shoes</p>
+    <div class="row" style="margin-top:12px">
+      <div style="width:520px"><div class="img" style="height:380px"></div><div style="display:flex;gap:8px;margin-top:8px"><div class="img" style="width:70px;height:70px"></div><div class="img" style="width:70px;height:70px"></div><div class="img" style="width:70px;height:70px"></div><div class="img" style="width:70px;height:70px"></div></div></div>
+      <div style="flex:1">
+        <p class="mut">Kovai Run</p><h1>Kovai Run Pro running shoes</h1>
+        <p>★ 4.4 · 86 verified reviews</p>
+        <p style="margin-top:10px"><span class="price" style="font-size:26px">₹2,499</span><span class="mrp">₹3,999</span><span class="off">37% off</span></p>
+        <p class="mut">Lowest price in 30 days: ₹2,399</p>
+        <h3 style="margin-top:14px">Colour</h3><span class="chip on">Blue</span><span class="chip">Black</span>
+        <h3 style="margin-top:8px">Size (UK)</h3><span class="chip">6</span><span class="chip">7</span><span class="chip on">8</span><span class="chip">9</span><span class="chip" style="color:#cbd5e1;text-decoration:line-through">10</span>
+        <p style="margin:8px 0"><span class="badge g">In stock</span></p>
+        <div style="display:flex;gap:10px;margin-top:10px"><span class="btn" style="flex:1">Add to cart</span><span class="btn out">♡ Wishlist</span></div>
+        <div class="box" style="margin-top:16px;padding:12px"><p>Sold by <b>Kovai Sports</b> · Coimbatore</p><p class="mut">Free delivery above ₹499 · 7-day returns</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="left:850px;top:340px">Stock lives on the VARIANT (Blue / UK 8). Sold-out sizes are crossed out</div>
+  <div class="note" style="left:860px;top:200px">From price_history (Phase 9)</div>
+</section>
+
+<!-- ============ 4. CART ============ -->
+<section class="page rel" id="cart">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div class="search">🔍 Search</div><div class="navr"><span>Hi, Ravi</span><span>🛒 <span class="pill">3</span></span></div></div>
+  <div class="wrap row">
+    <div style="flex:2">
+      <h1>Your cart (3 items)</h1><p class="mut" style="margin-bottom:12px">This order comes in <b>2 packages</b> - one from each seller.</p>
+      <div class="box" style="padding:16px;margin-bottom:14px">
+        <div class="between"><h3>📦 Package 1 · Chennai Mobiles</h3><span class="badge g">Free delivery</span></div>
+        <div class="row" style="margin-top:10px"><div class="img" style="width:70px;height:70px"></div><div style="flex:1"><b>Silicone case for iPhone 15</b><p class="mut">Black</p><p>Qty [ − 2 + ] · <a style="color:var(--brand)">Remove</a></p></div><b>₹998</b></div>
+      </div>
+      <div class="box" style="padding:16px">
+        <div class="between"><h3>📦 Package 2 · Kovai Sports</h3><span class="badge g">Free delivery</span></div>
+        <div class="row" style="margin-top:10px"><div class="img" style="width:70px;height:70px"></div><div style="flex:1"><b>Kovai Run Pro running shoes</b><p class="mut">Blue · UK 8</p><p>Qty [ − 1 + ]</p></div><b>₹2,499</b></div>
+      </div>
+    </div>
+    <div style="flex:1"><div class="box" style="padding:18px">
+      <h2>Price details</h2>
+      <div class="between"><span>Items (3)</span><span>₹3,497</span></div>
+      <div class="between"><span>Delivery</span><span style="color:#15803d">FREE</span></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:10px 0">
+      <div class="between"><b>Total</b><b>₹3,497</b></div>
+      <span class="btn w" style="margin-top:14px">Checkout</span>
+      <p class="mut" style="margin-top:8px;font-size:12px">Prices are checked again at checkout.</p>
+    </div></div>
+  </div>
+  <div class="note" style="left:440px;top:70px">Grouped by seller = the split is visible before paying</div>
+  <div class="note" style="left:850px;top:370px">A guest cart lives in the browser and is MERGED after login (Phase 3)</div>
+</section>
+
+<!-- ============ 5. CHECKOUT ============ -->
+<section class="page rel" id="checkout">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div style="flex:1"></div><div class="navr"><span>🔒 Secure checkout</span></div></div>
+  <div class="wrap">
+    <div style="display:flex;gap:28px;margin-bottom:18px"><span class="step"><span class="dot">1</span>Address</span><span class="step"><span class="dot">2</span>Review</span><span class="step"><span class="dot off2">3</span>Pay</span></div>
+    <div class="row">
+      <div style="flex:2">
+        <div class="box" style="padding:16px;margin-bottom:14px"><h2>Deliver to</h2><p>◉ <b>Ravi Kumar</b> · 12 Anna Salai, Chennai 600002 · 98xxxxxx10 <span class="badge b">Default</span></p><p>○ Office · Guindy, Chennai</p><p style="color:var(--brand);margin-top:6px">+ Add a new address</p></div>
+        <div class="box" style="padding:16px">
+          <h2>Review packages</h2>
+          <p>📦 <b>Chennai Mobiles</b> · Silicone case × 2 · ₹998</p>
+          <p>📦 <b>Kovai Sports</b> · Kovai Run Pro × 1 · ₹2,499</p>
+          <p style="margin-top:8px;background:#fef3c7;padding:8px;border-radius:8px">⚠ Price changed: Silicone case is now ₹499 (was ₹549)</p>
+        </div>
+      </div>
+      <div style="flex:1"><div class="box" style="padding:18px">
+        <h2>Coupon</h2><div style="display:flex;gap:8px"><div class="search" style="color:var(--ink)">WELCOME10</div><span class="btn out">Apply</span></div><p style="color:#15803d;margin-top:6px">✓ 10% off applied</p>
+        <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+        <div class="between"><span>Items</span><span>₹3,497</span></div><div class="between"><span>Coupon</span><span style="color:#15803d">− ₹350</span></div><div class="between"><span>Delivery</span><span>FREE</span></div>
+        <div class="between" style="margin-top:6px"><b>Pay</b><b style="font-size:18px">₹3,147</b></div>
+        <span class="btn w" style="margin-top:14px">Pay with Stripe →</span>
+        <p class="mut" style="margin-top:8px;font-size:12px">Stock is held for 10 minutes while you pay.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="note" style="left:180px;top:470px">Server recalculates every price, coupon share and delivery fee (never trusts the browser)</div>
+  <div class="note" style="left:840px;top:470px">One payment → order TV-1001 → 2 packages (Phase 4)</div>
+</section>
+
+<!-- ============ 6. SELLER DASHBOARD ============ -->
+<section class="page rel" id="seller">
+  <div class="nav"><div class="logo"><i></i><span>Tri<span class="vo">Vo</span><span class="ko">Ko</span></span></div><div style="flex:1"></div><div class="navr"><span class="badge b">Seller · Kovai Sports</span><span>🔔</span></div></div>
+  <div class="row" style="padding:0">
+    <div style="width:210px;background:#fff;border-right:1px solid var(--line);min-height:560px;padding:20px">
+      <p style="font-weight:700;color:var(--brand);margin-bottom:12px">▣ Dashboard</p><p style="margin-bottom:10px">📦 Orders to ship</p><p style="margin-bottom:10px">🏷 Products</p><p style="margin-bottom:10px">↩ Returns</p><p style="margin-bottom:10px">⚡ Flash sales</p><p style="margin-bottom:10px">₹ Earnings</p><p>📈 Analytics</p>
+    </div>
+    <div style="flex:1;padding:24px">
+      <h1>Good morning, Kovai Sports</h1>
+      <div class="grid4" style="margin-top:14px">
+        <div class="box" style="padding:14px"><p class="mut">To pack today</p><p style="font-size:26px;font-weight:800">6</p></div>
+        <div class="box" style="padding:14px"><p class="mut">Low stock</p><p style="font-size:26px;font-weight:800;color:#b45309">3</p></div>
+        <div class="box" style="padding:14px"><p class="mut">Balance</p><p style="font-size:26px;font-weight:800">₹48,210</p></div>
+        <div class="box" style="padding:14px"><p class="mut">Open returns</p><p style="font-size:26px;font-weight:800">1</p></div>
+      </div>
+      <div class="box" style="margin-top:16px;padding:16px">
+        <h2>Packages to ship</h2>
+        <table><tr><th>Package</th><th>Items</th><th>Placed</th><th>Status</th><th></th></tr>
+          <tr><td>TV-1001-2</td><td>Kovai Run Pro × 1</td><td>10:42</td><td><span class="badge a">PLACED</span></td><td><span class="btn" style="height:30px">Mark packed</span></td></tr>
+          <tr><td>TV-0998-1</td><td>Yoga mat × 2</td><td>09:15</td><td><span class="badge b">PACKED</span></td><td><span class="btn out" style="height:30px">Ship + tracking no.</span></td></tr>
+          <tr><td>TV-0990-3</td><td>Cricket bat × 1</td><td>Yesterday</td><td><span class="badge g">SHIPPED</span></td><td class="mut">AWB 1234…</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="left:260px;top:505px">Seller sees ONLY their own packages (Phase 2 ownership checks)</div>
+  <div class="note" style="left:560px;top:505px">Balance = sum of ledger lines (+90% on delivery, − on refund)</div>
+</section>
+
+</body>
+</html>

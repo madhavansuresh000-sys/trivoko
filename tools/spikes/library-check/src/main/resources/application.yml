@@ -1,0 +1,11 @@
+spring:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate.search.backend.directory.type: local-heap
+      hibernate.search.indexing.plan.synchronization.strategy: sync
+  datasource:
+    url: jdbc:mysql://unused:3306/x
