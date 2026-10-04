@@ -45,6 +45,17 @@ app:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:}
     api-key: ${CLOUDINARY_API_KEY:}
     api-secret: ${CLOUDINARY_API_SECRET:}
+  # Phase 2 login (copied from EventHub). The secret signs the JWT cookie; dev and prod set it below.
+  jwt:
+    expiry: 8h              # how long a login lasts
+  cookie:
+    secure: false           # true in prod (cookie only over HTTPS)
+  login:
+    max-failures: 5         # wrong passwords in a row ...
+    lock-time: 15m          # ... lock the login this long (LoginAttemptService)
+  demo:
+    # from .env (DEMO_PASSWORD): the password of the demo accounts (DevDataSeeder); empty = locked
+    password: ${DEMO_PASSWORD:}
 
 ---
 # ---------- dev: your laptop (MySQL + Mailpit in Docker, see docker-compose.yml) ----------
@@ -63,6 +74,10 @@ spring:
   mail:
     host: localhost
     port: 1026              # Mailpit: see emails at http://localhost:8026
+app:
+  jwt:
+    # from .env (JWT_SECRET); the fallback lets tests and CI run, and must never be used in prod
+    secret: ${JWT_SECRET:dev-only-secret-not-for-production-0123456789}
 
 ---
 # ---------- prod: real server (values come from environment variables, Phase 12) ----------
@@ -79,3 +94,8 @@ spring:
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+app:
+  jwt:
+    secret: ${JWT_SECRET}   # no fallback: the server refuses to start without a real secret
+  cookie:
+    secure: true

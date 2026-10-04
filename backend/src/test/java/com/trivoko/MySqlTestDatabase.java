@@ -35,7 +35,9 @@ public class MySqlTestDatabase implements ApplicationContextInitializer<Configur
 		context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("testcontainers-mysql", Map.of(
 				"spring.datasource.url", MYSQL.getJdbcUrl(),
 				"spring.datasource.username", MYSQL.getUsername(),
-				"spring.datasource.password", MYSQL.getPassword())));
+				"spring.datasource.password", MYSQL.getPassword(),
+				// the demo accounts' password in every test (support.Logins.PASSWORD), whatever .env says
+				"app.demo.password", "Test-Demo-Pass-1")));
 	}
 
 }

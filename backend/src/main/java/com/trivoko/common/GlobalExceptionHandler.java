@@ -12,12 +12,16 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import com.trivoko.auth.TooManyLoginAttemptsException;
 
 /**
  * Turns every error into clean JSON (RFC 9457 "problem details"), e.g.
@@ -81,6 +85,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
 				"This record was changed by someone else. Please reload and try again.");
+	}
+
+	/** Login failed. Same message for "no such email" and "wrong password" (do not reveal which emails exist). */
+	@ExceptionHandler(BadCredentialsException.class)
+	ProblemDetail handleBadCredentials(BadCredentialsException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Wrong email or password.");
+	}
+
+	/** The admin blocked this account. */
+	@ExceptionHandler(DisabledException.class)
+	ProblemDetail handleDisabled(DisabledException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "This account is blocked. Please contact TriVoKo support.");
+	}
+
+	/** 429 + Retry-After header (seconds), the standard way to say "slow down". */
+	@ExceptionHandler(TooManyLoginAttemptsException.class)
+	ResponseEntity<ProblemDetail> handleTooManyLogins(TooManyLoginAttemptsException ex) {
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+			.header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfter().toSeconds()))
+			.body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
 	}
 
 	/** @PreAuthorize said no. Without this, the catch-all below would turn it into a 500. */
