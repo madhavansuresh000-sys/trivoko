@@ -2,8 +2,8 @@
 Writes postman/TriVoKo.postman_collection.json (import it in Postman, or run it with newman).
 
 Run:  python tools/postman-gen/make_collection.py      (from the project folder)
-Then: npx newman run postman/TriVoKo.postman_collection.json
-      (needs the backend on localhost:8080 with the Flyway sample data)
+Then: npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<DEMO_PASSWORD from .env>
+      (needs the backend on localhost:8080 with the Flyway sample data; folder 7 logs in as the demo accounts)
 """
 import json
 from pathlib import Path
@@ -11,15 +11,29 @@ from pathlib import Path
 OUT = Path(__file__).resolve().parents[2] / "postman/TriVoKo.postman_collection.json"
 
 
-def req(name, method, path, tests, query=None):
+def req(name, method, path, tests, query=None, body=None):
     url = "{{baseUrl}}" + path
     if query:
         url += "?" + "&".join(f"{k}={v}" for k, v in query)
+    request = {"method": method, "url": url}
+    if method != "GET":
+        # CSRF: copy the XSRF-TOKEN cookie (saved by "Get the CSRF cookie") into the header, like Axios does
+        request["header"] = [{"key": "X-XSRF-TOKEN", "value": "{{xsrf}}"}]
+    if body is not None:
+        request["header"].append({"key": "Content-Type", "value": "application/json"})
+        request["body"] = {"mode": "raw", "raw": json.dumps(body, indent=2)}
     return {
         "name": name,
-        "request": {"method": method, "url": url},
+        "request": request,
         "event": [{"listen": "test", "script": {"exec": tests}}],
     }
+
+
+def login(who, extra=None):
+    """POST /api/auth/login as a demo account; newman keeps the TRIVOKO_TOKEN cookie for the next requests."""
+    return req(f"Login as {who}", "POST", "/api/auth/login",
+               [ok, check("it is " + who, f"pm.expect(j.email).to.eql('{who}@trivoko.test')")] + (extra or []),
+               body={"email": f"{who}@trivoko.test", "password": "{{demoPassword}}"})
 
 
 def status(code, text):
@@ -110,20 +124,65 @@ folders = [
         ]),
         req("Pending shop -> 404", "GET", "/api/sellers/erode-organics", [status(404, "Not Found")]),
     ]),
+    ("7. Accounts & roles (Phase 2)", [
+        req("Get the CSRF cookie", "GET", "/api/auth/csrf", [
+            status(204, "No Content"),
+            "pm.test('XSRF-TOKEN cookie saved', () => { const t = pm.cookies.get('XSRF-TOKEN'); "
+            "pm.expect(t).to.be.a('string'); pm.collectionVariables.set('xsrf', t); });",
+        ]),
+        login("kovai.sports", [check("a seller", "pm.expect(j.roles).to.include('SELLER')")]),
+        req("Who am I (Kovai Sports)", "GET", "/api/auth/me", [
+            ok, check("my shop is approved", "pm.expect(j.seller.slug).to.eql('kovai-sports'); pm.expect(j.seller.status).to.eql('APPROVED')"),
+        ]),
+        req("Create a product (DRAFT)", "POST", "/api/seller/products", [
+            status(201, "Created"),
+            check("DRAFT with the cheapest price", "pm.expect(j.status).to.eql('DRAFT'); pm.expect(j.priceFrom).to.eql(799)"),
+            "pm.collectionVariables.set('productId', pm.response.json().id);",
+        ], body={"name": "Newman Practice Cricket Ball", "categoryId": "{{cricketCategory}}", "brand": "Kovai",
+                 "description": "Made by the Postman checks; the admin rejects it, so it never goes live.",
+                 "variants": [{"label": "Red leather", "colour": "Red", "price": 799, "mrp": 999, "stock": 10},
+                              {"label": "White leather", "colour": "White", "price": 899, "mrp": 1099, "stock": 6}]}),
+        req("Submit it for approval", "POST", "/api/seller/products/{{productId}}/submit", [
+            ok, check("PENDING", "pm.expect(j.status).to.eql('PENDING')"),
+        ]),
+        login("admin"),
+        req("Admin rejects it (keeps the shop counts unchanged)", "POST", "/api/admin/products/{{productId}}/reject", [
+            ok, check("REJECTED with the reason", "pm.expect(j.status).to.eql('REJECTED'); pm.expect(j.rejectionReason).to.eql('Practice product from the Postman checks')"),
+        ], body={"reason": "Practice product from the Postman checks"}),
+        login("chennai.mobiles"),
+        req("DONE-WHEN: another shop's product -> 403", "GET", "/api/seller/products/{{productId}}", [
+            status(403, "Forbidden"),
+        ]),
+        login("erode.organics"),
+        req("DONE-WHEN: unapproved shop cannot create -> 403", "POST", "/api/seller/products", [
+            status(403, "Forbidden"),
+        ], body={"name": "Not allowed", "categoryId": "{{cricketCategory}}", "brand": "Erode",
+                 "description": "Should never be saved", "variants": [{"label": "1 kg", "price": 100, "mrp": 120, "stock": 1}]}),
+        req("Logout", "POST", "/api/auth/logout", [status(204, "No Content")]),
+        req("Who am I after logout -> 401", "GET", "/api/auth/me", [status(401, "Unauthorized")]),
+    ]),
     ("6. Uploads", [
-        # no CSRF token and no login: the CSRF check runs first, so 403 (the 401 case is in UploadSignatureTest)
-        req("Signature from a stranger -> 403", "POST", "/api/uploads/signature", [status(403, "Forbidden")]),
+        # a logged-out visitor (with a CSRF token, like a browser) -> 401 "please log in"
+        req("Signature from a logged-out visitor -> 401", "POST", "/api/uploads/signature", [status(401, "Unauthorized")]),
     ]),
 ]
 
 collection = {
     "info": {
-        "name": "TriVoKo API (Phase 1)",
-        "description": "The public catalogue with automatic checks. Needs the backend on localhost:8080 "
-                       "with the Flyway sample data (V2). Generated by tools/postman-gen/make_collection.py.",
+        "name": "TriVoKo API (Phase 1-2)",
+        "description": "The public catalogue plus accounts & roles, with automatic checks. Needs the backend on "
+                       "localhost:8080 with the Flyway sample data (V2, V3) and the demo password in the "
+                       "demoPassword variable (DEMO_PASSWORD from .env). "
+                       "Generated by tools/postman-gen/make_collection.py.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     },
-    "variable": [{"key": "baseUrl", "value": "http://localhost:8080"}],
+    "variable": [
+        {"key": "baseUrl", "value": "http://localhost:8080"},
+        {"key": "demoPassword", "value": ""},
+        {"key": "cricketCategory", "value": "26"},  # sub-category "Cricket" in the seed (tools/seed-gen)
+        {"key": "xsrf", "value": ""},
+        {"key": "productId", "value": ""},
+    ],
     "item": [{"name": name, "item": items} for name, items in folders],
 }
 

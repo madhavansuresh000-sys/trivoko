@@ -10,18 +10,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Gives the demo accounts from Flyway V3 (admin, Ravi, Kavya, the 9 shop owners) their password.
+ * Gives the demo accounts from Flyway V3 (admin, Ravi, Kavya, the 9 shop owners - all @trivoko.test)
+ * their password.
  *
  * Flyway cannot do this, because the password must never be in the code: V3 stores a placeholder
- * that can never match, and this runner replaces it with BCrypt(DEMO_PASSWORD). Runs only when
- * DEMO_PASSWORD is set: in .env on a laptop, or as a secret on a demo server. Empty = demo accounts
- * stay locked. Accounts whose password was already set are left alone. (Idea copied from EventHub.)
+ * that can never match, and this runner sets BCrypt(DEMO_PASSWORD) instead. It always follows the
+ * CURRENT DEMO_PASSWORD: change it in .env, restart, and the demo logins use the new one.
+ * Runs only when DEMO_PASSWORD is set (in .env on a laptop, or as a secret on a demo server);
+ * empty = nothing changes. Real accounts (not @trivoko.test) are never touched. (Idea from EventHub.)
  */
 @Component
 public class DevDataSeeder implements ApplicationRunner {
 
-	/** The password hash written by V3__accounts_and_roles.sql. */
-	static final String PLACEHOLDER = "{noop}!locked";
+	static final String DEMO_DOMAIN = "@trivoko.test";
 
 	private static final Logger log = LoggerFactory.getLogger(DevDataSeeder.class);
 
@@ -44,16 +45,19 @@ public class DevDataSeeder implements ApplicationRunner {
 		if (password.isBlank()) {
 			return;
 		}
-		String hash = passwordEncoder.encode(password); // one hash for all: BCrypt is slow on purpose
+		String hash = null; // made once, only if needed: BCrypt is slow on purpose
 		int updated = 0;
 		for (User user : users.findAll()) {
-			if (PLACEHOLDER.equals(user.getPasswordHash())) {
+			boolean demo = user.getEmail().endsWith(DEMO_DOMAIN);
+			// matches() is false for the V3 placeholder and for an older DEMO_PASSWORD
+			if (demo && !passwordEncoder.matches(password, user.getPasswordHash())) {
+				hash = hash == null ? passwordEncoder.encode(password) : hash;
 				user.setPasswordHash(hash);
 				updated++;
 			}
 		}
 		if (updated > 0) {
-			log.info("Demo accounts ready: {} (*@trivoko.test, password = DEMO_PASSWORD in .env)", updated);
+			log.info("Demo accounts ready: {} (*{}, password = DEMO_PASSWORD)", updated, DEMO_DOMAIN);
 		}
 	}
 
