@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 0 - Setup** (October 2026). Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
+> **Status: Phase 1 - Catalogue API** (October 2026): 120 sample products from 8 shops, browsable through the API. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
 
 ## What it will do
 
@@ -50,6 +50,18 @@ cd frontend && npm install && npm run dev # shop on http://localhost:5173
 
 Tests: `cd backend && ./mvnw verify` (needs Docker - the tests start their own MySQL) and `cd frontend && npm test`.
 
+API checks (backend running): `npx newman run postman/TriVoKo.postman_collection.json` - or import the file in Postman.
+
+### Catalogue API (Phase 1, public - no login)
+
+| URL | What it returns |
+|---|---|
+| `GET /api/products?category=phones&sort=price` | Product cards. Filters: `category` (a top category includes its sub-categories), `brand` (one or more), `minPrice`, `maxPrice`, `inStock=true`, `seller`; `sort=newest\|price`, `dir=asc\|desc`, `page`, `size` (max 48) |
+| `GET /api/products/{slug}` | One product: variants (price, MRP, % off, in stock, "only N left"), photos, seller, breadcrumb |
+| `GET /api/categories` | The category tree (10 top categories x 3) |
+| `GET /api/sellers/{slug}` | A shop page (approved shops only) |
+| `POST /api/uploads/signature` | Logged-in only: a signature to upload one product photo straight to Cloudinary |
+
 ## Project folders
 
 | Folder | What is inside |
@@ -60,7 +72,8 @@ Tests: `cd backend && ./mvnw verify` (needs Docker - the tests start their own M
 | `Phase_0_Setup/` ... `Phase_12_Launch/` | One checklist document per phase |
 | `docs/` | Sketches, decisions, diagrams |
 | `load-tests/`, `e2e/` | k6 load tests (Phase 7), Playwright tests (Phase 11) |
-| `tools/` | Generators for the plan documents |
+| `postman/` | Postman collection with automatic checks |
+| `tools/` | Generators: plan documents, sample data (`seed-gen`), Postman collection (`postman-gen`) |
 
 ## To-do carried over from EventHub
 

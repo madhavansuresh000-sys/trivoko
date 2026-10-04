@@ -70,6 +70,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
 	}
 
+	/** A feature needs keys or a service that is not set up on this computer/server yet. */
+	@ExceptionHandler(ServiceNotConfiguredException.class)
+	ProblemDetail handleNotConfigured(ServiceNotConfiguredException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+	}
+
 	/** Two people saved the same row at the same moment (@Version). */
 	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
 	ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {

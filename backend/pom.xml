@@ -20,7 +20,7 @@
 	</properties>
 
 	<!-- Phase 0 = only the base. Libraries for later phases are added in their phase
-	     (JWT: Phase 2, Stripe + OpenPDF: Phase 4, Hibernate Search: Phase 10). -->
+	     (Cloudinary: Phase 1, JWT: Phase 2, Stripe + OpenPDF: Phase 4, Hibernate Search: Phase 10). -->
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -67,6 +67,12 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.1.1</version>
+		</dependency>
+		<!-- product photos: signs uploads that go from the browser straight to Cloudinary (docs/decisions.md D1) -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http5</artifactId>
+			<version>2.5.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.mysql</groupId>
@@ -118,6 +124,13 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-cache-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- architecture rules as tests (ModuleRulesTest); version checked in docs/decisions.md D1 -->
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.5.1</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- tests start their own throwaway MySQL in Docker (see MySqlTestDatabase) -->
