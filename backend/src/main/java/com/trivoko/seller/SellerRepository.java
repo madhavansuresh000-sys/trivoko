@@ -11,4 +11,6 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
 
 	Optional<Seller> findBySlugAndStatus(String slug, SellerStatus status);
 
+	Optional<Seller> findByOwnerId(Long ownerId);
+
 }
