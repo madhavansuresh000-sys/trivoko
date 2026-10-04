@@ -23,7 +23,7 @@ import com.trivoko.user.UserService;
  *   everyone   : health, BROWSING the catalogue (GET products, categories, sellers), register, login, csrf
  *   logged in  : addresses, "become a seller", everything not listed here
  *   SELLER     : /api/seller/** (and SellerAccess also checks the shop is APPROVED, so a block works at once)
- *   ADMIN      : /api/admin/**
+ *   ADMIN      : /api/admin/**, Swagger (the API map)
  *
  * Like the mall gate: JwtCookieFilter reads your ID card, these rules decide which doors it opens.
  */
@@ -55,8 +55,9 @@ public class SecurityConfig {
 				.requestMatchers("/api/seller/apply", "/api/seller/application").authenticated()
 				.requestMatchers("/api/seller/**").hasRole("SELLER")
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
-				// TEMPORARY until Phase 2 Task 8 locks it to ADMIN
-				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+				// the API map (Swagger) tells an attacker every URL, so only the admin may open it. The admin's
+				// login cookie also works on :8080 (cookies are per host name, not per port): log in first.
+				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN")
 				.anyRequest().authenticated())
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint(SecurityProblems.notLoggedIn())

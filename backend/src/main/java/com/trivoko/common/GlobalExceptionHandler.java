@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.trivoko.auth.TooManyLoginAttemptsException;
 
@@ -50,6 +51,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
 		problem.setProperty("errors", errors);
 		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/**
+	 * A URL that does not exist, e.g. /api/nope (spec section 8). Spring's own text ("No static resource
+	 * api/nope.") would confuse a frontend developer, so say plainly what happened.
+	 */
+	@Override
+	protected ResponseEntity<Object> handleNoResourceFoundException(NoResourceFoundException ex, HttpHeaders headers,
+			HttpStatusCode status, WebRequest request) {
+		String path = ex.getResourcePath().startsWith("/") ? ex.getResourcePath() : "/" + ex.getResourcePath();
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+			.body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "There is no API at " + path));
 	}
 
 	/** A query value of the wrong type, e.g. page=abc or min=ten. */
