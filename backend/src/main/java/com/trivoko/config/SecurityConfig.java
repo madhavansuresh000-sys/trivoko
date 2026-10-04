@@ -21,7 +21,9 @@ import com.trivoko.user.UserService;
  * Who may call which URL (Phase 2, spec section 4).
  *
  *   everyone   : health, BROWSING the catalogue (GET products, categories, sellers), register, login, csrf
- *   logged in  : everything else
+ *   logged in  : addresses, "become a seller", everything not listed here
+ *   SELLER     : /api/seller/** (and SellerAccess also checks the shop is APPROVED, so a block works at once)
+ *   ADMIN      : /api/admin/**
  *
  * Like the mall gate: JwtCookieFilter reads your ID card, these rules decide which doors it opens.
  */
@@ -49,6 +51,10 @@ public class SecurityConfig {
 				.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/csrf").permitAll()
 				// the shop window is public - anyone may BROWSE (GET only)
 				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
+				// any logged-in customer may apply for a shop and see their application
+				.requestMatchers("/api/seller/apply", "/api/seller/application").authenticated()
+				.requestMatchers("/api/seller/**").hasRole("SELLER")
+				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				// TEMPORARY until Phase 2 Task 8 locks it to ADMIN
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 				.anyRequest().authenticated())

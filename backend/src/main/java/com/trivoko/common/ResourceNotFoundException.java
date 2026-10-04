@@ -7,4 +7,9 @@ public class ResourceNotFoundException extends RuntimeException {
 		super(what + " " + id + " not found");
 	}
 
+	/** A full sentence, when there is no id to show, e.g. "No shop application found for this account". */
+	public ResourceNotFoundException(String message) {
+		super(message);
+	}
+
 }
