@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.common.Slugs;
 import com.trivoko.seller.Seller;
+import com.trivoko.seller.SellerStatus;
 
 import jakarta.persistence.EntityManager;
 
@@ -182,6 +184,48 @@ public class ProductService {
 		product.setStatus(ProductStatus.PENDING);
 		product.setRejectionReason(null);
 		return toSellerView(product);
+	}
+
+	// ---------- The admin's decisions (Phase 2 endpoints; the admin pages come in Phase 6) ----------
+
+	/** The admin's queue, oldest first (first come, first served). */
+	public List<SellerProductView> listByStatus(ProductStatus status) {
+		return products.findAll((root, query, cb) -> cb.equal(root.get("status"), status), Sort.by("id")).stream()
+			.map(ProductService::toSellerView)
+			.toList();
+	}
+
+	/** PENDING -> ACTIVE: customers can see and buy it now. The shop itself must still be APPROVED. */
+	@Transactional
+	public SellerProductView approve(Long productId) {
+		Product product = pending(productId);
+		if (product.getSeller().getStatus() != SellerStatus.APPROVED) {
+			throw new BusinessRuleException("The shop of this product is " + product.getSeller().getStatus()
+					+ ", so the product cannot go live.");
+		}
+		product.setStatus(ProductStatus.ACTIVE);
+		product.setRejectionReason(null);
+		audit.record("PRODUCT_APPROVED", "PRODUCT", product.getId(), product.getName());
+		return toSellerView(product);
+	}
+
+	/** PENDING -> REJECTED with a reason the seller sees; they can fix it and submit again. */
+	@Transactional
+	public SellerProductView reject(Long productId, String reason) {
+		Product product = pending(productId);
+		product.setStatus(ProductStatus.REJECTED);
+		product.setRejectionReason(reason.trim());
+		audit.record("PRODUCT_REJECTED", "PRODUCT", product.getId(), reason.trim());
+		return toSellerView(product);
+	}
+
+	private Product pending(Long productId) {
+		Product product = get(productId);
+		if (product.getStatus() != ProductStatus.PENDING) {
+			throw new BusinessRuleException("Only a PENDING product can be approved or rejected (this one is "
+					+ product.getStatus() + ").");
+		}
+		return product;
 	}
 
 	private void fullEdit(Product product, SellerProductRequest request) {
