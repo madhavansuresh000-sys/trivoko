@@ -5,12 +5,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.auth.AuthUser;
+import com.trivoko.catalog.ProductService;
 
 /**
  * The guard on every seller URL, used in @PreAuthorize, e.g.
  *
  * <pre>
- *   &#64;PreAuthorize("@sellerAccess.isActiveSeller()")
+ *   &#64;PreAuthorize("@sellerAccess.isActiveSeller() and @sellerAccess.ownsProduct(#id)")
  * </pre>
  *
  * Like a shopkeeper's key card: it opens only YOUR storeroom, and only while your shop is open
@@ -23,13 +24,29 @@ public class SellerAccess {
 
 	private final SellerRepository sellers;
 
-	SellerAccess(SellerRepository sellers) {
+	private final ProductService productService;
+
+	SellerAccess(SellerRepository sellers, ProductService productService) {
 		this.sellers = sellers;
+		this.productService = productService;
 	}
 
 	/** Logged in AND owns a shop that is APPROVED right now. */
 	public boolean isActiveSeller() {
 		return activeShop() != null;
+	}
+
+	/**
+	 * Does product #id belong to the logged-in seller's shop?
+	 * A product that does not exist answers true here, so the service can say 404 "not found"
+	 * (there is nothing to protect). Another shop's product -> false -> 403.
+	 */
+	public boolean ownsProduct(Long productId) {
+		Seller shop = activeShop();
+		if (shop == null) {
+			return false;
+		}
+		return productService.sellerIdOf(productId).map(shop.getId()::equals).orElse(true);
 	}
 
 	/** The id of the logged-in user's APPROVED shop; 403 if there is none. */

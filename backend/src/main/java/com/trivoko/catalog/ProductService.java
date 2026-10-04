@@ -1,6 +1,16 @@
 package com.trivoko.catalog;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,10 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
+import com.trivoko.catalog.dto.SellerProductRequest;
+import com.trivoko.catalog.dto.SellerProductView;
+import com.trivoko.catalog.dto.SellerVariantRequest;
 import com.trivoko.catalog.dto.VariantView;
+import com.trivoko.admin.AuditService;
 import com.trivoko.common.BadRequestException;
+import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
+import com.trivoko.common.Slugs;
+import com.trivoko.seller.Seller;
+
+import jakarta.persistence.EntityManager;
 
 /** The catalogue's rules. Other modules call THIS class, never ProductRepository (ArchUnit rule). */
 @Service
@@ -23,13 +42,20 @@ public class ProductService {
 	private final ProductVariantRepository variants;
 	private final PriceHistoryRepository priceHistory;
 	private final CategoryService categoryService;
+	private final CategoryRepository categories;
+	private final AuditService audit;
+	private final EntityManager em;
 
 	ProductService(ProductRepository products, ProductVariantRepository variants,
-			PriceHistoryRepository priceHistory, CategoryService categoryService) {
+			PriceHistoryRepository priceHistory, CategoryService categoryService, CategoryRepository categories,
+			AuditService audit, EntityManager em) {
 		this.products = products;
 		this.variants = variants;
 		this.priceHistory = priceHistory;
 		this.categoryService = categoryService;
+		this.categories = categories;
+		this.audit = audit;
+		this.em = em;
 	}
 
 	/** The shop listing: only what the public may see, with the customer's filters. */
@@ -83,11 +109,179 @@ public class ProductService {
 		BigDecimal oldPrice = variant.getPrice();
 		if (oldPrice.compareTo(newPrice) != 0) {
 			priceHistory.save(new PriceHistory(variant, oldPrice, newPrice));
+			audit.record("PRICE_CHANGED", "VARIANT", variant.getId(), oldPrice.toPlainString() + " -> " + newPrice.toPlainString());
 		}
 		variant.setPrice(newPrice);
 		variant.setMrp(newMrp);
 		variant.getProduct().refreshPriceFrom();
 		return CatalogMapper.toView(variant);
+	}
+
+
+	// ---------- The seller's own products (Phase 2; the seller module checks ownership first) ----------
+
+	/** A new product in DRAFT: only its seller can see it until the admin approves it. */
+	@Transactional
+	public SellerProductView createDraft(Long sellerId, SellerProductRequest request) {
+		Category category = subCategory(request.categoryId());
+		checkPrices(request);
+		Product product = new Product(em.getReference(Seller.class, sellerId), category, request.name().trim(),
+				Slugs.unique(request.name(), "product", slug -> products.findBySlug(slug).isPresent()),
+				request.brand().trim(), request.description().trim());
+		products.save(product); // IDENTITY: the id exists now, the SKUs below use it
+		request.variants().forEach(v -> product.addVariant(newVariant(product, v)));
+		products.flush(); // variant ids for the answer
+		return toSellerView(product);
+	}
+
+	/** My products, newest first, optionally only one status (e.g. DRAFT). */
+	public PageResponse<SellerProductView> findForSeller(Long sellerId, ProductStatus status, Pageable pageable) {
+		Specification<Product> spec = (root, query, cb) -> cb.equal(root.get("seller").get("id"), sellerId);
+		if (status != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+		}
+		return PageResponse.from(products.findAll(spec, pageable), ProductService::toSellerView);
+	}
+
+	public SellerProductView getForSeller(Long productId) {
+		return toSellerView(get(productId));
+	}
+
+	/** Whose product is this? Empty = no such product. Used by SellerAccess.ownsProduct. */
+	public Optional<Long> sellerIdOf(Long productId) {
+		return products.findById(productId).map(p -> p.getSeller().getId());
+	}
+
+	/**
+	 * DRAFT or REJECTED: everything may change (variants are matched by id; missing ones are removed).
+	 * ACTIVE: only price, MRP and stock (spec P2-11) - a live product cannot be secretly renamed.
+	 * PENDING (waiting for the admin) or BLOCKED: no changes.
+	 */
+	@Transactional
+	public SellerProductView updateBySeller(Long productId, SellerProductRequest request) {
+		Product product = get(productId);
+		checkPrices(request);
+		switch (product.getStatus()) {
+			case DRAFT, REJECTED -> fullEdit(product, request);
+			case ACTIVE -> liveEdit(product, request);
+			case PENDING -> throw new BusinessRuleException("This product is waiting for approval and cannot be changed now.");
+			case BLOCKED -> throw new BusinessRuleException("This product is blocked by TriVoKo and cannot be changed.");
+		}
+		products.flush(); // ids of new variants for the answer
+		return toSellerView(product);
+	}
+
+	/** DRAFT or REJECTED -> PENDING (the admin's queue). */
+	@Transactional
+	public SellerProductView submit(Long productId) {
+		Product product = get(productId);
+		if (product.getStatus() != ProductStatus.DRAFT && product.getStatus() != ProductStatus.REJECTED) {
+			throw new BusinessRuleException("Only a DRAFT or REJECTED product can be sent for approval (this one is "
+					+ product.getStatus() + ").");
+		}
+		product.setStatus(ProductStatus.PENDING);
+		product.setRejectionReason(null);
+		return toSellerView(product);
+	}
+
+	private void fullEdit(Product product, SellerProductRequest request) {
+		if (!product.getName().equals(request.name().trim())) {
+			product.setSlug(Slugs.unique(request.name(), "product",
+					slug -> products.findBySlug(slug).filter(p -> !p.getId().equals(product.getId())).isPresent()));
+		}
+		product.setName(request.name().trim());
+		product.setCategory(subCategory(request.categoryId()));
+		product.setBrand(request.brand().trim());
+		product.setDescription(request.description().trim());
+
+		Map<Long, ProductVariant> existing = product.getVariants().stream()
+			.collect(Collectors.toMap(ProductVariant::getId, v -> v));
+		Set<Long> kept = new HashSet<>();
+		for (SellerVariantRequest v : request.variants()) {
+			if (v.id() == null) {
+				product.addVariant(newVariant(product, v));
+				continue;
+			}
+			ProductVariant variant = existing.get(v.id());
+			if (variant == null) {
+				throw new BadRequestException("Variant " + v.id() + " does not belong to this product");
+			}
+			kept.add(v.id());
+			variant.setLabel(v.label().trim());
+			variant.setSize(blankToNull(v.size()));
+			variant.setColour(blankToNull(v.colour()));
+			variant.setStock(v.stock());
+			changePrice(variant.getId(), v.price(), v.mrp());
+		}
+		// variants the seller left out of the form are removed (orphanRemoval deletes the rows)
+		product.getVariants().removeIf(variant -> existing.containsKey(variant.getId()) && !kept.contains(variant.getId()));
+		product.refreshPriceFrom();
+	}
+
+	private void liveEdit(Product product, SellerProductRequest request) {
+		boolean sameDetails = product.getName().equals(request.name().trim())
+				&& product.getCategory().getId().equals(request.categoryId())
+				&& product.getBrand().equals(request.brand().trim())
+				&& Objects.equals(product.getDescription(), request.description().trim());
+		Map<Long, ProductVariant> existing = product.getVariants().stream()
+			.collect(Collectors.toMap(ProductVariant::getId, v -> v));
+		boolean sameVariants = request.variants().size() == existing.size()
+				&& request.variants().stream().allMatch(v -> v.id() != null && existing.containsKey(v.id())
+						&& existing.get(v.id()).getLabel().equals(v.label().trim())
+						&& Objects.equals(existing.get(v.id()).getSize(), blankToNull(v.size()))
+						&& Objects.equals(existing.get(v.id()).getColour(), blankToNull(v.colour())));
+		if (!sameDetails || !sameVariants) {
+			throw new BusinessRuleException("A live product can only change its prices and stock. "
+					+ "To change anything else, contact TriVoKo support.");
+		}
+		for (SellerVariantRequest v : request.variants()) {
+			existing.get(v.id()).setStock(v.stock());
+			changePrice(v.id(), v.price(), v.mrp());
+		}
+	}
+
+	private Product get(Long productId) {
+		return products.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+	}
+
+	/** Products sit on the lower shelf (e.g. "Mobile phones"), never on a top category ("Electronics"). */
+	private Category subCategory(Long categoryId) {
+		Category category = categories.findById(categoryId)
+			.orElseThrow(() -> new BadRequestException("Category " + categoryId + " does not exist"));
+		if (category.getParent() == null) {
+			throw new BadRequestException("Choose a sub-category (e.g. Mobile phones), not a top category");
+		}
+		return category;
+	}
+
+	private static void checkPrices(SellerProductRequest request) {
+		for (SellerVariantRequest v : request.variants()) {
+			if (v.mrp().compareTo(v.price()) < 0) {
+				throw new BadRequestException("MRP must not be lower than the price (variant '" + v.label() + "')");
+			}
+		}
+	}
+
+	/** SKU = "P" + product id + a short random part, e.g. P121-7F3A2C (unique, never reused). */
+	private static ProductVariant newVariant(Product product, SellerVariantRequest v) {
+		String sku = "P" + product.getId() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.ROOT);
+		return new ProductVariant(sku, v.label().trim(), blankToNull(v.size()), blankToNull(v.colour()), v.price(),
+				v.mrp(), v.stock());
+	}
+
+	private static SellerProductView toSellerView(Product p) {
+		List<SellerProductView.Variant> vs = p.getVariants().stream()
+			.sorted(Comparator.comparing(ProductVariant::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+			.map(v -> new SellerProductView.Variant(v.getId(), v.getSku(), v.getLabel(), v.getSize(), v.getColour(),
+					v.getPrice(), v.getMrp(), v.getStock()))
+			.toList();
+		return new SellerProductView(p.getId(), p.getName(), p.getSlug(), p.getBrand(), p.getDescription(),
+				p.getCategory().getId(), p.getCategory().getName(), p.getStatus(), p.getRejectionReason(),
+				p.getPriceFrom(), p.getMrpFrom(), vs, p.getCreatedAt(), p.getUpdatedAt());
+	}
+
+	private static String blankToNull(String s) {
+		return s == null || s.isBlank() ? null : s.trim();
 	}
 
 }

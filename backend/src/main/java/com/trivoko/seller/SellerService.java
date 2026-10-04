@@ -1,8 +1,6 @@
 package com.trivoko.seller;
 
-import java.text.Normalizer;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -12,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.trivoko.admin.AuditService;
 import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.ResourceNotFoundException;
+import com.trivoko.common.Slugs;
 import com.trivoko.seller.dto.SellerApplicationView;
 import com.trivoko.seller.dto.SellerApplyRequest;
 import com.trivoko.seller.dto.SellerProfile;
@@ -156,24 +155,9 @@ public class SellerService {
 		return shop;
 	}
 
-	/**
-	 * "Ravi's Gadget Shop" -> "ravi-s-gadget-shop". If another shop has it already: "-2", "-3" ...
-	 * ownId = the shop being renamed (its own slug does not count as taken).
-	 */
+	/** "Ravi's Gadget Shop" -> "ravi-s-gadget-shop" (or "-2" ...). ownId = the shop being renamed (its own slug is free). */
 	String uniqueSlug(String shopName, Long ownId) {
-		String base = Normalizer.normalize(shopName, Normalizer.Form.NFD)
-			.replaceAll("\\p{M}", "")                 // é -> e
-			.toLowerCase(Locale.ROOT)
-			.replaceAll("[^a-z0-9]+", "-")
-			.replaceAll("(^-+|-+$)", "");
-		if (base.isEmpty()) {
-			base = "shop";
-		}
-		String slug = base;
-		for (int n = 2; isTaken(slug, ownId); n++) {
-			slug = base + "-" + n;
-		}
-		return slug;
+		return Slugs.unique(shopName, "shop", slug -> isTaken(slug, ownId));
 	}
 
 	private boolean isTaken(String slug, Long ownId) {
