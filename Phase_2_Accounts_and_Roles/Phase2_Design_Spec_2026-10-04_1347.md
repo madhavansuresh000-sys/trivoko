@@ -1,6 +1,6 @@
 # Phase 2 - Accounts & Roles: Design Spec
 
-**Date:** 4 October 2026 · **Status:** approved in chat, section by section (waiting for review of this file)
+**Date:** 4 October 2026 · **Status:** APPROVED by Madhavan (4 Oct 2026), incl. section 8 custom 404 page
 **Branch:** `phase-2-accounts-and-roles` · **Plan source:** Phase Plan, Phase 2 (steps 1-9)
 
 ## 1. Goal
@@ -187,7 +187,39 @@ Postman generator: new folder "Accounts & roles" (login, apply, approve, create,
 - PR CI green and merged into `main` (with Madhavan's yes)
 - Madhavan answers: httpOnly cookie vs localStorage, what CSRF protects against, how ownership is checked
 
-## 8. Out of scope (later phases)
+## 8. Extra: custom 404 page (added at approval, 4 Oct 2026)
+
+Madhavan asked for a custom 404 page and picked the **"helpful shop 404"** style.
+
+**Frontend - `pages/NotFoundPage.jsx` (rewrite):**
+
+```
+      [ empty-shelf drawing, inline SVG, teal + saffron ]
+                         404
+                 This shelf is empty
+  The link may be wrong, or the product may have been removed.
+  [ Search products...              ] [Search]   -> /products?q=<text>
+  Popular:  (first 6 top categories from GET /api/categories, as buttons -> /products?category=<slug>)
+            [ Go home ]   [ <- Go back ]  (Go back only when there is browser history)
+```
+
+- Categories come from the real API; while loading show nothing, on error hide the "Popular" row (the
+  page must never break).
+- Works in dark mode and at phone width; `document.title` = "Page not found - TriVoKo"; the drawing has
+  `aria-hidden`, the heading is the page's `h1`.
+- New route `products` -> `ComingSoonPage` until Phase 3 builds the listing, so the search box and the
+  category buttons do not lead to another 404.
+- Test (Vitest): unknown URL shows the 404 heading; categories from a mocked API appear as links with
+  the right `href`; API error -> page still shows, no "Popular" row; search submits to `/products?q=`.
+
+**Backend - unknown `/api/...` URL:**
+
+- Logged-in user calling a URL that does not exist -> **404 ProblemDetail** with
+  `detail: "There is no API at /api/<path>"` (customised from Spring's `NoResourceFoundException`).
+- Guest -> stays **401** (we do not tell strangers which URLs exist).
+- Test: `UnknownApiUrlTest` (logged-in 404 JSON, guest 401).
+
+## 9. Out of scope (later phases)
 
 Forgot password (Phase 4), product photos + full editor + ledger (Phase 5), admin pages + user blocking UI
 (Phase 6), frontend login pages (Phase 3), refresh tokens and Redis-backed login lock (only if needed at launch).
