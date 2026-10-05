@@ -42,12 +42,16 @@ export const loadCart = createAsyncThunk('cart/load', (_, api) =>
 
 /** "Add to cart" on the product page: adds to what is already there (the server caps at 10 and the stock). */
 export const addToCart = createAsyncThunk('cart/add', ({ variantId, quantity }, api) =>
-  run(() => {
+  run(async () => {
     if (!isLoggedIn(api.getState)) {
       guestCart.add(variantId, quantity)
       return guestView()
     }
-    const current = selectCartLines(api.getState()).find((l) => l.variantId === variantId)?.quantity ?? 0
+    // PUT sets the quantity, so we must know what is already saved - if the cart has not loaded yet,
+    // ask the server first (otherwise "add 1" could overwrite a saved 4 with 1)
+    const view = api.getState().cart.view ?? await fetchCart()
+    const lines = (view.packages ?? []).flatMap((p) => p.items)
+    const current = lines.find((l) => l.variantId === variantId)?.quantity ?? 0
     return putCartItem(variantId, Math.min(current + quantity, 10))
   }, api))
 

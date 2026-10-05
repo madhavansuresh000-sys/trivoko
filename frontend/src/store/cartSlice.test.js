@@ -51,6 +51,16 @@ describe('cartSlice', () => {
     expect(selectCartCount(store.getState())).toBe(3)
   })
 
+  it('a logged-in add before the cart has loaded asks the server first, so nothing is overwritten', async () => {
+    cartApi.fetchCart.mockResolvedValue(view(4, [{ variantId: 57, quantity: 4, available: true }]))
+    cartApi.putCartItem.mockResolvedValue(view(5))
+    const store = makeStore(ravi) // no loadCart() yet
+    await store.dispatch(addToCart({ variantId: 57, quantity: 1 }))
+
+    expect(cartApi.fetchCart).toHaveBeenCalledTimes(1)
+    expect(cartApi.putCartItem).toHaveBeenCalledWith(57, 5)
+  })
+
   it('after login the guest lines are merged and the browser copy is cleared', async () => {
     guestCart.add(57, 1)
     guestCart.add(12, 2)
