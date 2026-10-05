@@ -56,6 +56,19 @@ app:
   demo:
     # from .env (DEMO_PASSWORD): the password of the demo accounts (DevDataSeeder); empty = locked
     password: ${DEMO_PASSWORD:}
+  # Phase 4: where the shop runs (payment pages send the customer back here)
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # Phase 4 payments: empty key = the built-in TEST payment page (PaymentConfig); keys come from .env
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  payments:
+    test-page-allowed: ${PAYMENTS_TEST_PAGE:false}
+  order:
+    hold-time: 10m          # stock is kept this long while the customer pays
+    expiry-check: 60s       # how often the expiry job looks for unpaid orders
+  scheduling:
+    enabled: true           # tests switch the jobs off and call them directly
 
 ---
 # ---------- dev: your laptop (MySQL + Mailpit in Docker, see docker-compose.yml) ----------

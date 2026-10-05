@@ -37,7 +37,12 @@ public class MySqlTestDatabase implements ApplicationContextInitializer<Configur
 				"spring.datasource.username", MYSQL.getUsername(),
 				"spring.datasource.password", MYSQL.getPassword(),
 				// the demo accounts' password in every test (support.Logins.PASSWORD), whatever .env says
-				"app.demo.password", "Test-Demo-Pass-1")));
+				"app.demo.password", "Test-Demo-Pass-1",
+				// Phase 4: tests call the expiry job themselves, and always use the fake payment page
+				// (a real Stripe key in .env must never be used by a test run)
+				"app.scheduling.enabled", "false",
+				"app.stripe.secret-key", "",
+				"app.stripe.webhook-secret", "whsec_test_only_secret")));
 	}
 
 }
