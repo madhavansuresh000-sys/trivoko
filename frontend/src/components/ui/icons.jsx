@@ -39,3 +39,32 @@ export const CartIcon = (p) => (
   <Icon {...p}><circle cx="9" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 7H6" /></Icon>
 )
 export const BoltIcon = (p) => <Icon {...p}><path d="M13 2 4 14h7l-1 8 9-12h-7z" /></Icon>
+
+// ---- Phase 3: shop, cart and account ----
+export const UserIcon = (p) => (
+  <Icon {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></Icon>
+)
+export const ChevronDownIcon = (p) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>
+export const ChevronRightIcon = (p) => <Icon {...p}><path d="m9 6 6 6-6 6" /></Icon>
+export const FilterIcon = (p) => <Icon {...p}><path d="M4 6h16M7 12h10M10 18h4" /></Icon>
+export const StoreIcon = (p) => (
+  <Icon {...p}><path d="M3 9 4.5 4h15L21 9M3 9v11h18V9M3 9h18M9 20v-6h6v6" /></Icon>
+)
+export const TruckIcon = (p) => (
+  <Icon {...p}><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></Icon>
+)
+export const PackageIcon = (p) => (
+  <Icon {...p}><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></Icon>
+)
+export const PlusIcon = (p) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>
+export const MinusIcon = (p) => <Icon {...p}><path d="M5 12h14" /></Icon>
+export const TrashIcon = (p) => (
+  <Icon {...p}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></Icon>
+)
+export const CheckIcon = (p) => <Icon {...p}><path d="m5 12 5 5 9-10" /></Icon>
+export const LogoutIcon = (p) => (
+  <Icon {...p}><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3" /></Icon>
+)
+export const GridIcon = (p) => (
+  <Icon {...p}><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" /></Icon>
+)

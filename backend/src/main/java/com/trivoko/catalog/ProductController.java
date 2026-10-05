@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.trivoko.catalog.dto.CategoryNode;
+import com.trivoko.catalog.dto.BrandCount;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.common.BadRequestException;
@@ -53,6 +54,8 @@ public class ProductController {
 			@RequestParam(required = false) String seller,
 			@Parameter(description = "newest or price") @RequestParam(defaultValue = "newest") String sort,
 			@Parameter(description = "asc or desc (for price)") @RequestParam(defaultValue = "asc") String dir,
+			@Parameter(description = "Search words; every word must be in the name or the brand", example = "volta case")
+			@RequestParam(required = false) String q,
 			@RequestParam(defaultValue = "0") int page,
 			@Parameter(description = "Products per page, at most 48") @RequestParam(defaultValue = "24") int size) {
 
@@ -63,8 +66,17 @@ public class ProductController {
 			throw new BadRequestException("minPrice must not be greater than maxPrice");
 		}
 		int pageSize = Math.clamp(size, 1, MAX_PAGE_SIZE);
-		ProductSearch search = new ProductSearch(category, brands, minPrice, maxPrice, inStock, seller);
+		ProductSearch search = new ProductSearch(category, brands, minPrice, maxPrice, inStock, seller, q);
 		return productService.search(search, PageRequest.of(page, pageSize, toSort(sort, dir)));
+	}
+
+	/** Declared before /products/{slug}; Spring prefers the fixed path "brands" over the {slug} pattern anyway. */
+	@GetMapping("/products/brands")
+	@Operation(summary = "Brands with product counts, for the brand filter")
+	public List<BrandCount> brands(
+			@Parameter(description = "Category slug; empty = the whole shop", example = "phones")
+			@RequestParam(required = false) String category) {
+		return productService.brands(category);
 	}
 
 	@GetMapping("/products/{slug}")

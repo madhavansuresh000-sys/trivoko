@@ -1,12 +1,15 @@
 package com.trivoko.catalog;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Locale;
 
 import org.springframework.data.jpa.domain.Specification;
 
 import com.trivoko.seller.SellerStatus;
 
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
 
 /**
@@ -43,6 +46,20 @@ final class ProductSpecifications {
 
 	static Specification<Product> priceAtMost(BigDecimal max) {
 		return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("priceFrom"), max);
+	}
+
+	/**
+	 * The simple search box (Phase 3; smart search replaces it in Phase 10): EVERY word must appear in the
+	 * name or the brand, e.g. "volta cover" -> name/brand LIKE '%volta%' AND name/brand LIKE '%cover%'.
+	 * % and _ typed by the customer are escaped, so "100%" means the text "100%", not "100 + anything".
+	 */
+	static Specification<Product> matchesWords(String q) {
+		return (root, query, cb) -> cb.and(Arrays.stream(q.trim().toLowerCase(Locale.ROOT).split("\\s+"))
+			.map(word -> "%" + word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%")
+			.map(pattern -> cb.or(
+					cb.like(cb.lower(root.get("name")), pattern, '\\'),
+					cb.like(cb.lower(root.get("brand")), pattern, '\\')))
+			.toArray(Predicate[]::new));
 	}
 
 	static Specification<Product> soldBy(String sellerSlug) {

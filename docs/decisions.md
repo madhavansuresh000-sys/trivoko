@@ -55,3 +55,22 @@ but the gate still checks the register to see if you are still allowed in.
 
 Cost: one small primary-key lookup per logged-in request. Fine for this project; if the k6 test in Phase 7
 shows it matters, cache the user for a few seconds (Redis or Caffeine) - not before.
+
+---
+
+## D4 - Guest cart in the browser, prices only from the server (Phase 3, 5 Oct 2026)
+
+A visitor can fill a cart before logging in. Their cart lives in the browser (localStorage key `trivoko.cart`)
+as `[{ variantId, quantity }]` - **only what and how many, never a price**. To show it, the browser sends the
+lines to `POST /api/cart/preview`, and the server prices them with the same `CartPricing` class it uses for a
+saved cart. After login, `POST /api/cart/merge` adds the lines to the user's saved cart (the same variant =
+quantities added, capped at 10 and the stock) and the browser copy is cleared.
+
+Why: anyone can edit localStorage or a request. If the browser kept prices, a customer could make a ₹12,999
+phone cost ₹1. With only ids and quantities in the browser, the worst they can do is change a quantity - which
+the server caps anyway. In Phase 4 checkout, the server calculates every amount again from these same lines.
+Like a shopping trolley: you push it around, but the cashier scans every item's price at the counter.
+
+Other choices (can be changed later): a cart line keeps a sold-out or blocked item (shown, not counted) so the
+customer sees what happened; delivery is per seller package (free from ₹499, else ₹40) and is only shown in
+Phase 3 - Phase 4 charges it.

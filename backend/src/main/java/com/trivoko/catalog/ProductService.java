@@ -1,6 +1,7 @@
 package com.trivoko.catalog;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.catalog.dto.BrandCount;
+import com.trivoko.catalog.dto.CartVariant;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.catalog.dto.SellerProductRequest;
@@ -81,7 +84,41 @@ public class ProductService {
 		if (search.seller() != null && !search.seller().isBlank()) {
 			spec = spec.and(ProductSpecifications.soldBy(search.seller()));
 		}
+		if (search.q() != null && !search.q().isBlank()) {
+			spec = spec.and(ProductSpecifications.matchesWords(search.q()));
+		}
 		return PageResponse.from(products.findAll(spec, pageable), CatalogMapper::toCard);
+	}
+
+	/**
+	 * Today's facts about the variants in a cart (Phase 3, cart module). Unknown ids are simply missing from
+	 * the map. available = the product is ACTIVE and its shop APPROVED (a blocked shop's items stay in carts
+	 * but cannot be bought).
+	 */
+	public Map<Long, CartVariant> cartVariants(Collection<Long> variantIds) {
+		if (variantIds.isEmpty()) {
+			return Map.of();
+		}
+		return variants.findByIdIn(variantIds).stream().collect(Collectors.toMap(ProductVariant::getId, v -> {
+			Product p = v.getProduct();
+			Seller s = p.getSeller();
+			return new CartVariant(v.getId(), p.getSlug(), p.getName(), v.getLabel(),
+					p.getImages().isEmpty() ? null : p.getImages().getFirst().getUrl(), v.getPrice(), v.getMrp(),
+					v.getStock(), p.getStatus() == ProductStatus.ACTIVE && s.getStatus() == SellerStatus.APPROVED,
+					s.getId(), s.getShopName(), s.getSlug(), s.getCity());
+		}));
+	}
+
+	/**
+	 * The brand checkboxes of the filter: brands of the visible products, with how many each has.
+	 * No category = every brand in the shop. An unknown category simply has no brands (empty list).
+	 */
+	public List<BrandCount> brands(String category) {
+		if (category == null || category.isBlank()) {
+			return products.countVisibleByBrand();
+		}
+		List<Long> categoryIds = categoryService.idsWithChildrenOrEmpty(category);
+		return categoryIds.isEmpty() ? List.of() : products.countVisibleByBrandIn(categoryIds);
 	}
 
 	/** The product page. A product that is not live (draft, pending, blocked ...) is "not found" for the public. */

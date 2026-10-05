@@ -1,25 +1,49 @@
-import { lazy } from 'react'
+import { lazy, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { Route, Routes } from 'react-router-dom'
 
+import RequireAuth from './components/auth/RequireAuth'
 import Layout from './components/layout/Layout'
+import CartPage from './pages/CartPage'
 import HomePage from './pages/HomePage'
-import ComingSoonPage from './pages/ComingSoonPage'
+import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ProductPage from './pages/ProductPage'
+import ProductsPage from './pages/ProductsPage'
+import RegisterPage from './pages/RegisterPage'
+import ShopPage from './pages/ShopPage'
+import { loadSession } from './store/authSlice'
+import { loadCart } from './store/cartSlice'
 
-// loaded only when someone opens it (React.lazy = code splitting)
+// loaded only when someone opens them (React.lazy = code splitting)
 const StyleGuidePage = lazy(() => import('./pages/StyleGuidePage'))
+const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'))
+const AddressesPage = lazy(() => import('./pages/AddressesPage'))
 
 export default function App() {
+  const dispatch = useDispatch()
+
+  // on start: "who am I?" (the cookie decides), then the cart - saved (logged in) or from this browser (guest)
+  useEffect(() => {
+    dispatch(loadSession()).then(() => dispatch(loadCart()))
+  }, [dispatch])
+
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:slug" element={<ProductPage />} />
+        <Route path="shops/:slug" element={<ShopPage />} />
+        <Route path="cart" element={<CartPage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        {/* logged-in pages: a visitor is sent to /login?next=... and comes back here */}
+        <Route element={<RequireAuth />}>
+          <Route path="sell" element={<BecomeSellerPage />} />
+          <Route path="account/addresses" element={<AddressesPage />} />
+        </Route>
         <Route path="style-guide" element={<StyleGuidePage />} />
-        {/* until Phase 3 builds the listing; the 404 page's search and category links land here */}
-        <Route
-          path="products"
-          element={<ComingSoonPage title="All products" description="The product list with filters arrives in Phase 3." />}
-        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
