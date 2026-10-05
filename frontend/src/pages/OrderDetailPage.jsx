@@ -34,6 +34,13 @@ export default function OrderDetailPage() {
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={o.status} />
           {o.status === 'PENDING_PAYMENT' && <Button size="sm" to="/checkout">Continue to payment</Button>}
+          {o.status === 'PAID' && (
+            // a plain link: the browser sends the login cookie and downloads the file itself
+            <a href={`/api/orders/${encodeURIComponent(o.number)}/invoice.pdf`}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+              Download invoice (PDF)
+            </a>
+          )}
         </div>
       </div>
 

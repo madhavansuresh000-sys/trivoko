@@ -42,7 +42,10 @@ public class MySqlTestDatabase implements ApplicationContextInitializer<Configur
 				// (a real Stripe key in .env must never be used by a test run)
 				"app.scheduling.enabled", "false",
 				"app.stripe.secret-key", "",
-				"app.stripe.webhook-secret", "whsec_test_only_secret")));
+				"app.stripe.webhook-secret", "whsec_test_only_secret",
+				// tests never email anyone: port 1 is closed, so a send fails at once (OrderEmailsTest mocks the sender)
+				"spring.mail.host", "localhost",
+				"spring.mail.port", "1")));
 	}
 
 }

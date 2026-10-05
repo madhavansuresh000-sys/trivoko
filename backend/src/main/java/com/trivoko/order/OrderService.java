@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.cart.CartService;
 import com.trivoko.catalog.ProductService;
+import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.coupon.CouponService;
@@ -152,6 +153,15 @@ public class OrderService {
 		orders.findById(payment.getOrderId()).filter(o -> o.getUserId().equals(userId))
 			.orElseThrow(() -> new ResourceNotFoundException("Payment", sessionId));
 		return payment;
+	}
+
+	/** The PDF invoice: my own orders only (404 otherwise), and only once paid (409 before). */
+	public byte[] invoice(Long userId, String number, String customerName) {
+		Order order = owned(userId, number);
+		if (order.getStatus() != OrderStatus.PAID) {
+			throw new BusinessRuleException("The invoice is ready once the order is paid.");
+		}
+		return InvoicePdf.of(order, customerName);
 	}
 
 	/** "Verify on return": has the payment company seen the money? */

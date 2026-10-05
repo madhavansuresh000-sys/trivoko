@@ -16,6 +16,12 @@ spring:
       hibernate.default_batch_fetch_size: 50
   flyway:
     enabled: true
+  # a slow or missing mail server must never hold a request or a test for minutes (EmailSender retries later)
+  mail:
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
   cache:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s

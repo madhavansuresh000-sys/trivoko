@@ -1,6 +1,9 @@
 package com.trivoko.order;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +35,16 @@ public class OrderController {
 	@GetMapping("/{number}")
 	public OrderDetail one(@AuthenticationPrincipal AuthUser user, @PathVariable String number) {
 		return orderService.mine(user.id(), number);
+	}
+
+	/** The PDF invoice ("attachment" = the browser downloads it with this file name). */
+	@GetMapping(value = "/{number}/invoice.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+	public ResponseEntity<byte[]> invoice(@AuthenticationPrincipal AuthUser user, @PathVariable String number) {
+		byte[] pdf = orderService.invoice(user.id(), number, user.fullName());
+		return ResponseEntity.ok()
+			.contentType(MediaType.APPLICATION_PDF)
+			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"TriVoKo-invoice-" + number + ".pdf\"")
+			.body(pdf);
 	}
 
 }
