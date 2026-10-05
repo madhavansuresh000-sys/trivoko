@@ -106,6 +106,18 @@ public class StripePaymentGateway implements PaymentGateway {
 	}
 
 	@Override
+	public void refundPart(String sessionId, java.math.BigDecimal amount, String key) {
+		try {
+			String paymentIntent = Session.retrieve(sessionId, options).getPaymentIntent();
+			Refund.create(RefundCreateParams.builder().setPaymentIntent(paymentIntent).setAmount(Money.toPaise(amount)).build(),
+					RequestOptions.builder().setApiKey(secretKey).setIdempotencyKey(key).build());
+		}
+		catch (StripeException ex) {
+			throw new PaymentProviderException("Could not refund the package. Please try again.", ex);
+		}
+	}
+
+	@Override
 	public void refund(String sessionId) {
 		try {
 			String paymentIntent = Session.retrieve(sessionId, options).getPaymentIntent();

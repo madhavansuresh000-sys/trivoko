@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,6 +27,8 @@ public class OrderController {
 
 	private final OrderService orderService;
 
+	private final PackageService packageService;
+
 	@GetMapping
 	public PageResponse<OrderSummary> mine(@AuthenticationPrincipal AuthUser user,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
@@ -34,6 +37,14 @@ public class OrderController {
 
 	@GetMapping("/{number}")
 	public OrderDetail one(@AuthenticationPrincipal AuthUser user, @PathVariable String number) {
+		return orderService.mine(user.id(), number);
+	}
+
+	/** Cancel ONE package of my order, before it is shipped (refund of that package, stock back). */
+	@PostMapping("/{number}/packages/{packageId}/cancel")
+	public OrderDetail cancelPackage(@AuthenticationPrincipal AuthUser user, @PathVariable String number,
+			@PathVariable Long packageId) {
+		packageService.cancelByCustomer(user.id(), number, packageId);
 		return orderService.mine(user.id(), number);
 	}
 

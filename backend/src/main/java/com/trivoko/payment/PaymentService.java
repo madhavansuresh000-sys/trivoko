@@ -76,6 +76,27 @@ public class PaymentService {
 		bySession(sessionId).setStatus(PaymentStatus.REFUNDED);
 	}
 
+	/**
+	 * One package cancelled: give back its amount from the order's PAID payment. Partial refunds add up in
+	 * refundedAmount; when everything is given back the payment becomes REFUNDED. Never more than was paid.
+	 */
+	@Transactional
+	public void refundPart(Long orderId, BigDecimal amount, String key) {
+		Payment p = payments.findFirstByOrderIdOrderByIdDesc(orderId)
+			.filter(x -> x.getStatus() == PaymentStatus.PAID)
+			.orElseThrow(() -> new IllegalStateException("Order " + orderId + " has no paid payment to refund"));
+		BigDecimal left = p.getAmount().subtract(p.getRefundedAmount());
+		BigDecimal refund = amount.min(left);
+		if (refund.signum() <= 0) {
+			return;
+		}
+		gateway.refundPart(p.getSessionId(), refund, key);
+		p.setRefundedAmount(p.getRefundedAmount().add(refund));
+		if (p.getRefundedAmount().compareTo(p.getAmount()) >= 0) {
+			p.setStatus(PaymentStatus.REFUNDED);
+		}
+	}
+
 	/** The 10 minutes are over: close the page. */
 	@Transactional
 	public void expireOpenPages(Long orderId) {

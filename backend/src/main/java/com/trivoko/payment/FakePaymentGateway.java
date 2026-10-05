@@ -48,6 +48,11 @@ public class FakePaymentGateway implements PaymentGateway {
 	}
 
 	@Override
+	public void refundPart(String sessionId, java.math.BigDecimal amount, String key) {
+		log.info("[fake payments] Rs {} of session {} given back ({})", amount, sessionId, key);
+	}
+
+	@Override
 	public void refund(String sessionId) {
 		log.info("[fake payments] money for session {} given back", sessionId);
 	}
