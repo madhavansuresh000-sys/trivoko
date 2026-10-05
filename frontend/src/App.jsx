@@ -24,6 +24,13 @@ const TestPaymentPage = lazy(() => import('./pages/TestPaymentPage'))
 const PaymentResultPage = lazy(() => import('./pages/PaymentResultPage'))
 const OrdersPage = lazy(() => import('./pages/OrdersPage'))
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
+const SellerLayout = lazy(() => import('./pages/seller/SellerLayout'))
+const SellerDashboardPage = lazy(() => import('./pages/seller/SellerDashboardPage'))
+const SellerPackagesPage = lazy(() => import('./pages/seller/SellerPackagesPage'))
+const SellerProductsPage = lazy(() => import('./pages/seller/SellerProductsPage'))
+const ProductEditorPage = lazy(() => import('./pages/seller/ProductEditorPage'))
+const EarningsPage = lazy(() => import('./pages/seller/EarningsPage'))
+const AnalyticsPage = lazy(() => import('./pages/seller/AnalyticsPage'))
 
 export default function App() {
   const dispatch = useDispatch()
@@ -53,6 +60,16 @@ export default function App() {
           <Route path="payment/cancelled" element={<PaymentResultPage cancelled />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:number" element={<OrderDetailPage />} />
+          {/* the seller back office (Phase 5); SellerLayout shows "become a seller" to everyone else */}
+          <Route path="seller" element={<SellerLayout />}>
+            <Route index element={<SellerDashboardPage />} />
+            <Route path="orders" element={<SellerPackagesPage />} />
+            <Route path="products" element={<SellerProductsPage />} />
+            <Route path="products/new" element={<ProductEditorPage />} />
+            <Route path="products/:id" element={<ProductEditorPage />} />
+            <Route path="earnings" element={<EarningsPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+          </Route>
         </Route>
         <Route path="style-guide" element={<StyleGuidePage />} />
         <Route path="*" element={<NotFoundPage />} />
