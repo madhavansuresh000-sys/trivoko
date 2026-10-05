@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 1 - Catalogue API** (October 2026): 120 sample products from 8 shops, browsable through the API. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
+> **Status: Phase 2 - Accounts & roles** (October 2026): login with a secure cookie, customer / seller / admin roles, seller sign-up with admin approval, sellers manage their own products. 120 sample products from 8 shops. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
 
 ## What it will do
 
@@ -50,7 +50,7 @@ cd frontend && npm install && npm run dev # shop on http://localhost:5173
 
 Tests: `cd backend && ./mvnw verify` (needs Docker - the tests start their own MySQL) and `cd frontend && npm test`.
 
-API checks (backend running): `npx newman run postman/TriVoKo.postman_collection.json` - or import the file in Postman.
+API checks (backend running): `npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<DEMO_PASSWORD>` - or import the file in Postman.
 
 ### Catalogue API (Phase 1, public - no login)
 
@@ -61,6 +61,38 @@ API checks (backend running): `npx newman run postman/TriVoKo.postman_collection
 | `GET /api/categories` | The category tree (10 top categories x 3) |
 | `GET /api/sellers/{slug}` | A shop page (approved shops only) |
 | `POST /api/uploads/signature` | Logged-in only: a signature to upload one product photo straight to Cloudinary |
+
+### Accounts & roles API (Phase 2)
+
+Login sets an **HttpOnly JWT cookie** (8 hours). Every `POST / PUT / DELETE` also needs the CSRF token:
+call `GET /api/auth/csrf` once, then send the `XSRF-TOKEN` cookie value back in the `X-XSRF-TOKEN` header.
+Roles are read from the database on every request, so an admin's approve or block works at once.
+
+| URL | Who | What it does |
+|---|---|---|
+| `POST /api/auth/register` · `login` · `logout` | anyone | New customer account; login (5 wrong passwords = locked for 15 minutes); logout clears the cookie |
+| `GET /api/auth/me` · `GET /api/auth/csrf` | logged in · anyone | Who am I (roles + my shop); get the CSRF cookie |
+| `GET POST /api/me/addresses`, `PUT /{id}`, `PUT /{id}/default`, `DELETE /{id}` | customer | Delivery addresses (max 5, exactly one default) |
+| `POST /api/seller/apply` · `GET /api/seller/application` | customer | Apply to open a shop; see the application status |
+| `GET POST /api/seller/products`, `GET PUT /{id}`, `POST /{id}/submit` | approved seller | Own products only (another shop's product = 403); a new product is a draft until submitted |
+| `GET /api/admin/sellers`, `POST /{id}/approve` · `reject` · `block` | admin | Shop applications; approve adds the SELLER role, block hides the shop |
+| `GET /api/admin/products`, `POST /{id}/approve` · `reject` | admin | Products waiting for review |
+
+Swagger (`/swagger-ui.html`) is for the admin only. Every admin action is written to the audit log.
+
+### Demo logins
+
+Set `DEMO_PASSWORD` (and `JWT_SECRET`, 32+ characters) in `.env`; on start-up the backend gives that
+password to the demo accounts. Empty = the demo accounts stay locked. The password is never in Git.
+
+| Email | Role | Use it for |
+|---|---|---|
+| `admin@trivoko.test` | ADMIN (+ customer) | Approve shops and products |
+| `ravi@trivoko.test`, `kavya@trivoko.test` | CUSTOMER | Shopping, addresses |
+| `chennai.mobiles@trivoko.test`, `kovai.sports@trivoko.test`, `bengaluru.gadgets@`, `madurai.handlooms@`, `mumbai.style@`, `salem.steel@`, `pondy.books@`, `tirupur.kids@` | SELLER | One login per approved shop |
+| `erode.organics@trivoko.test` | CUSTOMER | Shop application still pending - try the admin approval |
+
+Postman: `npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<your DEMO_PASSWORD>`
 
 ## Project folders
 

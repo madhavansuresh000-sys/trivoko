@@ -39,3 +39,19 @@ run against a real MySQL 8.4 (Testcontainers). Run it with
 TriVoKo's MySQL runs on **3307** and Mailpit on **1026 / 8026**, so EventHub (3306 / 1025 / 8025) and TriVoKo
 can run at the same time - useful when copying a working pattern from EventHub.
 The backend (8080) and Vite (5173) keep the normal ports: only one of the two apps is developed at a time.
+
+---
+
+## D3 - Roles come from the database on every request (Phase 2, 4 Oct 2026)
+
+The login cookie holds a JWT with the user id **and** the roles (the frontend uses the roles to show menus).
+But the server does **not** trust the roles inside the token. On every request `JwtCookieFilter` checks the
+signature, takes the user id, and loads the user again: still enabled? which roles now?
+
+Why: a token lives 8 hours. If the server trusted its roles, an admin who **blocks** a shop or **approves**
+a new seller would have to wait up to 8 hours for it to take effect (or the person would have to log out and in).
+Reading the database makes every change instant - like a college ID card: the card shows your name,
+but the gate still checks the register to see if you are still allowed in.
+
+Cost: one small primary-key lookup per logged-in request. Fine for this project; if the k6 test in Phase 7
+shows it matters, cache the user for a few seconds (Redis or Caffeine) - not before.
