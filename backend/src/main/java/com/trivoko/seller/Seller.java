@@ -28,6 +28,13 @@ public class Seller {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	/**
+	 * The user who owns this shop (one user = one shop). Kept as a plain id, not a link to the User
+	 * entity, because users belong to another module (module rule: talk through services only).
+	 */
+	@Column(name = "user_id", nullable = false, unique = true, updatable = false)
+	private Long ownerId;
+
 	@Column(name = "shop_name", nullable = false, length = 120)
 	private String shopName;
 
@@ -37,6 +44,10 @@ public class Seller {
 	@Column(nullable = false, length = 80)
 	private String city;
 
+	/** Indian GST number, optional (15 characters). */
+	@Column(length = 15)
+	private String gstin;
+
 	@Column(length = 500)
 	private String description;
 
@@ -44,11 +55,16 @@ public class Seller {
 	@Column(nullable = false, length = 20)
 	private SellerStatus status = SellerStatus.PENDING;
 
+	/** Why the admin said no (shown to the applicant). */
+	@Column(name = "reject_reason", length = 300)
+	private String rejectReason;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 
-	public Seller(String shopName, String slug, String city, String description, SellerStatus status) {
+	public Seller(Long ownerId, String shopName, String slug, String city, String description, SellerStatus status) {
+		this.ownerId = ownerId;
 		this.shopName = shopName;
 		this.slug = slug;
 		this.city = city;

@@ -22,6 +22,9 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class CatalogRepositoryTest {
 
+	/** Seed user 2 (Ravi) owns no shop, so a test shop may use him as owner (sellers.user_id is unique). */
+	private static final Long RAVI_WITHOUT_SHOP = 2L;
+
 	@Autowired
 	private CategoryRepository categories;
 
@@ -73,7 +76,7 @@ class CatalogRepositoryTest {
 	private Product newProduct(String slug) {
 		Category top = categories.save(new Category("Test top", "test-top", null, 99));
 		Category sub = categories.save(new Category("Test sub", "test-sub-" + slug, top, 1));
-		Seller seller = sellers.save(new Seller("Test Shop", "test-shop-" + slug, "Chennai", "A test shop", SellerStatus.APPROVED));
+		Seller seller = sellers.save(new Seller(RAVI_WITHOUT_SHOP, "Test Shop", "test-shop-" + slug, "Chennai", "A test shop", SellerStatus.APPROVED));
 		return new Product(seller, sub, "Test product " + slug, slug, "Volta", "Description");
 	}
 
