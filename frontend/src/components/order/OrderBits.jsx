@@ -11,6 +11,10 @@ const ORDER = {
 const PACKAGE = {
   PENDING_PAYMENT: { color: 'amber', label: 'Waiting for payment' },
   PLACED: { color: 'brand', label: 'Placed - seller is packing' },
+  PACKED: { color: 'brand', label: 'Packed' },
+  SHIPPED: { color: 'accent', label: 'On its way' },
+  DELIVERED: { color: 'green', label: 'Delivered' },
+  CANCELLED: { color: 'red', label: 'Cancelled' },
   EXPIRED: { color: 'gray', label: 'Expired' },
 }
 

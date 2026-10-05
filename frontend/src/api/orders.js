@@ -12,6 +12,10 @@ export const placeOrder = (body) => api.post('/orders', body).then((r) => r.data
 
 export const fetchOrders = (page = 0) => api.get('/orders', { params: { page } }).then((r) => r.data)
 
+/** Cancel ONE package of my order before it ships -> the updated order (that package refunded) */
+export const cancelOrderPackage = (number, packageId) =>
+  api.post(`/orders/${encodeURIComponent(number)}/packages/${packageId}/cancel`).then((r) => r.data)
+
 export const fetchOrder = (number) => api.get(`/orders/${encodeURIComponent(number)}`).then((r) => r.data)
 
 // ---- payment pages ----

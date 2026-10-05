@@ -1,21 +1,44 @@
+import { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 
-import { fetchOrder } from '../api/orders'
+import { cancelOrderPackage, fetchOrder } from '../api/orders'
 import { OrderStatusBadge, PackageStatusBadge } from '../components/order/OrderBits'
+import PackageTimeline from '../components/order/PackageTimeline'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import { MapPinIcon, PackageIcon } from '../components/ui/icons'
 import { Spinner } from '../components/ui/Loader'
+import Modal from '../components/ui/Modal'
 import useAsync, { describeError } from '../hooks/useAsync'
 import { formatWhen } from '../lib/dates'
 import { formatRupees } from '../lib/money'
+import { notify } from '../store/notificationsSlice'
 import NotFoundPage from './NotFoundPage'
 
 /** One order: its packages (one per seller), items, amounts and the delivery address. */
 export default function OrderDetailPage() {
   const { number } = useParams()
-  const { data: o, loading, error } = useAsync(() => fetchOrder(number), [number])
+  const dispatch = useDispatch()
+  const [reload, setReload] = useState(0)
+  const { data: o, loading, error } = useAsync(() => fetchOrder(number), [number, reload])
+  const [cancelling, setCancelling] = useState(null) // the package being cancelled (asks first)
+  const [busy, setBusy] = useState(false)
+
+  const confirmCancel = async () => {
+    setBusy(true)
+    try {
+      await cancelOrderPackage(number, cancelling.id)
+      dispatch(notify(`Package cancelled - ${formatRupees(cancelling.total)} is refunded to your payment method.`))
+      setReload((r) => r + 1)
+    } catch (e) {
+      dispatch(notify(describeError(e).message, 'error'))
+    } finally {
+      setBusy(false)
+      setCancelling(null)
+    }
+  }
 
   if (loading) return <Spinner label="Loading the order" />
   if (error) {
@@ -63,12 +86,32 @@ export default function OrderDetailPage() {
               </li>
             ))}
           </ul>
+          {p.status !== 'PENDING_PAYMENT' && (
+            <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+              <PackageTimeline status={p.status} events={p.events} trackingNumber={p.trackingNumber} />
+            </div>
+          )}
+          {(p.status === 'PLACED' || p.status === 'PACKED') && (
+            <div className="mt-3 text-right">
+              <Button size="sm" variant="ghost" onClick={() => setCancelling(p)}>
+                <span className="text-red-700 dark:text-red-400">Cancel this package</span>
+              </Button>
+            </div>
+          )}
           <p className="mt-2 text-right text-sm text-slate-600 dark:text-slate-400">
             {p.discount > 0 && <>Coupon − {formatRupees(p.discount)} · </>}
             Delivery {p.shippingFee > 0 ? formatRupees(p.shippingFee) : 'free'} · <strong className="text-slate-900 dark:text-white">{formatRupees(p.total)}</strong>
           </p>
         </Card>
       ))}
+
+      <Modal open={cancelling !== null} onClose={() => setCancelling(null)} title="Cancel this package?"
+        footer={<>
+          <Button variant="secondary" onClick={() => setCancelling(null)}>Keep it</Button>
+          <Button variant="danger" disabled={busy} onClick={confirmCancel}>{busy ? 'Cancelling…' : 'Cancel package'}</Button>
+        </>}>
+        <p>{cancelling?.sellerName} will not ship it, and {cancelling ? formatRupees(cancelling.total) : ''} goes back to your payment method. Your other packages are not affected.</p>
+      </Modal>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="p-4 text-sm">
