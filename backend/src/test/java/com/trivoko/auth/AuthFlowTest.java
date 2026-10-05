@@ -72,6 +72,16 @@ class AuthFlowTest {
 			.andExpect(status().isConflict());
 	}
 
+	/** Review fix: DevDataSeeder resets every @trivoko.test password to DEMO_PASSWORD, so nobody may sign up with it. */
+	@Test
+	void demoDomainIsReservedForTheDemoAccounts() throws Exception {
+		register("{\"email\":\" Eve@TriVoKo.test \",\"password\":\"longenough1\",\"fullName\":\"Eve Hacker\"}")
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.detail").value(containsString("reserved")));
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email = 'eve@trivoko.test'", Integer.class))
+			.isZero();
+	}
+
 	@Test
 	void shortPasswordIsRejected() throws Exception {
 		register("{\"email\":\"short@shop.test\",\"password\":\"short\",\"fullName\":\"Short Pass\"}")

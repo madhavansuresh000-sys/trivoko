@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.ResourceNotFoundException;
 
@@ -30,6 +31,11 @@ public class UserService {
 		String normalized = normalizeEmail(email);
 		if (users.existsByEmail(normalized)) {
 			throw new BusinessRuleException("An account with this email already exists. Try logging in.");
+		}
+		// DevDataSeeder gives every @trivoko.test account the public demo password, so a real sign-up there
+		// could be taken over by anyone who knows it
+		if (normalized.endsWith(DevDataSeeder.DEMO_DOMAIN)) {
+			throw new BadRequestException("Emails ending in " + DevDataSeeder.DEMO_DOMAIN + " are reserved for the demo accounts.");
 		}
 		User user = new User(normalized, passwordEncoder.encode(rawPassword), fullName.trim(), blankToNull(phone));
 		user.getRoles().add(Role.CUSTOMER);
