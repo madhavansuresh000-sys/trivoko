@@ -106,6 +106,19 @@ public class CartService {
 		return CartPricing.price(lines, productService.cartVariants(lines.stream().map(Line::variantId).toList()));
 	}
 
+	/** Checkout (order module): my saved lines, oldest first - no prices (the order module prices them). */
+	public List<Line> checkoutLines(Long userId) {
+		return carts.findByUserId(userId)
+			.map(cart -> cart.getItems().stream().map(i -> new Line(i.getVariantId(), i.getQuantity())).toList())
+			.orElse(List.of());
+	}
+
+	/** The order was PAID: what was bought leaves the cart; anything else stays for next time. */
+	@Transactional
+	public void removeVariants(Long userId, java.util.Collection<Long> variantIds) {
+		carts.findByUserId(userId).ifPresent(cart -> variantIds.forEach(cart::remove));
+	}
+
 	private CartView price(Cart cart) {
 		List<Line> lines = cart.getItems().stream().map(i -> new Line(i.getVariantId(), i.getQuantity())).toList();
 		return CartPricing.price(lines, productService.cartVariants(lines.stream().map(Line::variantId).toList()));

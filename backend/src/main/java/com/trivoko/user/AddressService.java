@@ -70,6 +70,19 @@ public class AddressService {
 		}
 	}
 
+	/** Checkout (order module): one of MY addresses; someone else's id is simply "not found" (404). */
+	@Transactional(readOnly = true)
+	public AddressView get(Long userId, Long id) {
+		return view(mine(userId, id));
+	}
+
+	/** Checkout without a chosen address: my default one, if I have any. */
+	@Transactional(readOnly = true)
+	public java.util.Optional<AddressView> defaultOf(Long userId) {
+		return addresses.findByUserIdOrderByCreatedAtDescIdDesc(userId).stream().filter(Address::isDefault)
+			.findFirst().map(AddressService::view);
+	}
+
 	private Address mine(Long userId, Long id) {
 		return addresses.findByIdAndUserId(id, userId).orElseThrow(() -> new ResourceNotFoundException("Address", id));
 	}
