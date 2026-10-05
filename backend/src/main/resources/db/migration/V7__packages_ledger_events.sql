@@ -27,6 +27,7 @@ CREATE TABLE seller_ledger (
     id         BIGINT        NOT NULL AUTO_INCREMENT PRIMARY KEY,
     seller_id  BIGINT        NOT NULL,
     package_id BIGINT        NOT NULL,
+    order_number VARCHAR(12) NOT NULL,                      -- shown on the earnings page
     kind       VARCHAR(20)   NOT NULL,                       -- SALE (+90% on delivery); REFUND comes in Phase 8
     amount     DECIMAL(12,2) NOT NULL,
     note       VARCHAR(200),

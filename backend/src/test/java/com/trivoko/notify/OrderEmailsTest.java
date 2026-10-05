@@ -143,6 +143,20 @@ class OrderEmailsTest {
 		verify(mail, org.mockito.Mockito.timeout(15_000).times(3)).send(any(SimpleMailMessage.class));
 	}
 
+	/** A notification deleted while its email is being sent (e.g. cleanup): the sender just moves on. */
+	@Test
+	void notificationDeletedWhileSendingIsIgnored() throws Exception {
+		jdbc.update("""
+				INSERT INTO notifications (user_id, kind, title, body, email_status) VALUES (2, 'ORDER_PLACED', 't', 'b', 'PENDING')""");
+		long id = jdbc.queryForObject("SELECT MAX(id) FROM notifications", Long.class);
+		org.mockito.Mockito.doAnswer(call -> {
+			jdbc.update("DELETE FROM notifications WHERE id = ?", id); // gone while the mail server is talking
+			return null;
+		}).when(mail).send(any(SimpleMailMessage.class));
+
+		assertThat(emails.send(id)).isTrue(); // the email went out; there is just nothing left to mark
+	}
+
 	@Test
 	void mailServerDownIsRetriedLater() throws Exception {
 		doThrow(new MailSendException("Mailpit is down")).when(mail).send(any(SimpleMailMessage.class));

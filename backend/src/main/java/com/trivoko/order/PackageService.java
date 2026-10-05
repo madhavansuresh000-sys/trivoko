@@ -14,6 +14,7 @@ import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.order.dto.SellerPackageView;
 import com.trivoko.payment.PaymentService;
+import com.trivoko.seller.LedgerService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,6 +43,8 @@ public class PackageService {
 	private final PaymentService paymentService;
 
 	private final PackageNotifications notifications;
+
+	private final LedgerService ledger;
 
 	public PageResponse<SellerPackageView> listForSeller(Long sellerId, PackageStatus status, Pageable pageable) {
 		var statuses = status == null ? VISIBLE : EnumSet.of(status);
@@ -107,8 +110,9 @@ public class PackageService {
 		notifications.moved(p);
 	}
 
-	/** Task 3 fills this: the seller's ledger line (+90%). */
-	void onDelivered(OrderPackage p) {
+	/** The seller earns 90% of what the customer paid for this package (seller module's account book). */
+	private void onDelivered(OrderPackage p) {
+		ledger.recordSale(p.getSellerId(), p.getId(), p.getTotal(), p.getOrder().getNumber());
 	}
 
 	/** Another shop's package -> 403 (it exists, but it is not yours). */

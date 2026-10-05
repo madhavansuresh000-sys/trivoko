@@ -26,7 +26,12 @@ public final class OrderViews {
 	}
 
 	public record PackageDetail(Long id, String sellerName, PackageStatus status, BigDecimal itemsTotal,
-			BigDecimal discount, BigDecimal shippingFee, BigDecimal total, List<ItemDetail> items) {
+			BigDecimal discount, BigDecimal shippingFee, BigDecimal total, List<ItemDetail> items, String trackingNumber,
+			String cancelReason, List<EventView> events) {
+	}
+
+	/** One line of the tracking timeline. */
+	public record EventView(PackageStatus status, String note, LocalDateTime at) {
 	}
 
 	public record ItemDetail(Long variantId, String productSlug, String productName, String variantLabel,
@@ -49,7 +54,9 @@ public final class OrderViews {
 		return new PackageDetail(p.getId(), p.getSellerName(), p.getStatus(), p.getItemsTotal(), p.getDiscount(),
 				p.getShippingFee(), p.getTotal(), p.getItems().stream().map(i -> new ItemDetail(i.getVariantId(),
 						i.getProductSlug(), i.getProductName(), i.getVariantLabel(), i.getUnitPrice(), i.getMrp(),
-						i.getQuantity(), i.getLineTotal(), i.getDiscountShare())).toList());
+						i.getQuantity(), i.getLineTotal(), i.getDiscountShare())).toList(), p.getTrackingNumber(),
+				p.getCancelReason(),
+				p.getEvents().stream().map(e -> new EventView(e.getStatus(), e.getNote(), e.getCreatedAt())).toList());
 	}
 
 }

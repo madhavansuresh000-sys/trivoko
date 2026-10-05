@@ -191,6 +191,75 @@ class PackageMovesTest {
 			.andExpect(status().isConflict());
 	}
 
+	// ---------- Task 3: ledger, timeline, messages ----------
+
+	private void shipAndDeliver() throws Exception {
+		move(kovai, kovaiPackage, "pack", null);
+		move(kovai, kovaiPackage, "ship", "{\"trackingNumber\":\"AWB12345\"}");
+		move(kovai, kovaiPackage, "deliver", null);
+	}
+
+	@Test
+	void deliveryEarnsTheSellerNinetyPercent() throws Exception {
+		BigDecimal total = jdbc.queryForObject("SELECT total FROM packages WHERE id = ?", BigDecimal.class, kovaiPackage);
+		BigDecimal ninety = total.multiply(new BigDecimal("0.9")).setScale(2, java.math.RoundingMode.HALF_UP);
+		shipAndDeliver();
+		mvc.perform(get("/api/seller/ledger").cookie(kovai))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.balance").value(ninety.doubleValue()))
+			.andExpect(jsonPath("$.lines.content[0].kind").value("SALE"))
+			.andExpect(jsonPath("$.lines.content[0].amount").value(ninety.doubleValue()))
+			.andExpect(jsonPath("$.lines.content[0].orderNumber").value(number));
+	}
+
+	/** Review focus: "Mark delivered" pressed twice -> the sale is in the ledger ONCE. */
+	@Test
+	void deliverTwiceOneLedgerLine() throws Exception {
+		shipAndDeliver();
+		move(kovai, kovaiPackage, "deliver", null).andExpect(status().isConflict());
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM seller_ledger WHERE package_id = ?", Integer.class, kovaiPackage))
+			.isEqualTo(1);
+	}
+
+	@Test
+	void cancelledPackageEarnsNothing() throws Exception {
+		move(kovai, kovaiPackage, "cancel", "{\"reason\":\"Out of this size\"}");
+		mvc.perform(get("/api/seller/ledger").cookie(kovai)).andExpect(jsonPath("$.balance").value(0));
+	}
+
+	/** Phase 5 "done when": the seller ships and the customer sees the timeline update. */
+	@Test
+	void customerSeesTheTimelineAndTrackingNumber() throws Exception {
+		move(kovai, kovaiPackage, "pack", null);
+		move(kovai, kovaiPackage, "ship", "{\"trackingNumber\":\"awb12345\"}");
+		mvc.perform(get("/api/orders/" + number).cookie(ravi))
+			.andExpect(jsonPath("$.packages[?(@.id == " + kovaiPackage + ")].trackingNumber").value("AWB12345"))
+			.andExpect(jsonPath("$.packages[?(@.id == " + kovaiPackage + ")].events[*].status",
+					org.hamcrest.Matchers.contains("PLACED", "PACKED", "SHIPPED"))); // a JSONPath filter gives one flat list
+	}
+
+	@Test
+	void shippingTellsTheCustomer() throws Exception {
+		move(kovai, kovaiPackage, "pack", null);
+		move(kovai, kovaiPackage, "ship", "{\"trackingNumber\":\"AWB12345\"}");
+		assertThat(jdbc.queryForList("SELECT kind FROM notifications WHERE user_id = 2 ORDER BY id", String.class))
+			.contains("PACKAGE_PACKED", "PACKAGE_SHIPPED");
+		assertThat(jdbc.queryForObject(
+				"SELECT email_status FROM notifications WHERE user_id = 2 AND kind = 'PACKAGE_SHIPPED'", String.class))
+			.isNotEqualTo("NONE"); // shipped = bell AND email
+		assertThat(jdbc.queryForObject(
+				"SELECT email_status FROM notifications WHERE user_id = 2 AND kind = 'PACKAGE_PACKED'", String.class))
+			.isEqualTo("NONE"); // packed = bell only
+	}
+
+	@Test
+	void customerCancelTellsTheSeller() throws Exception {
+		mvc.perform(post("/api/orders/" + number + "/packages/" + kovaiPackage + "/cancel").cookie(ravi).with(csrf()));
+		long kovaiOwner = jdbc.queryForObject("SELECT user_id FROM sellers WHERE id = 2", Long.class);
+		assertThat(jdbc.queryForList("SELECT kind FROM notifications WHERE user_id = ?", String.class, kovaiOwner))
+			.contains("PACKAGE_CANCELLED");
+	}
+
 	/** Phase 5 "done when": the customer cancels at the same moment the seller ships -> one wins, the other 409. */
 	@Test
 	void cancelVsShipRace() throws Exception {
