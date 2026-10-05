@@ -13,4 +13,8 @@ public interface OrderPackageRepository extends JpaRepository<OrderPackage, Long
 
 	long countBySellerIdAndStatus(Long sellerId, PackageStatus status);
 
+	/** Sales chart: my packages placed since this time, in these statuses. */
+	java.util.List<OrderPackage> findBySellerIdAndPlacedAtGreaterThanEqualAndStatusIn(Long sellerId,
+			java.time.LocalDateTime from, Collection<PackageStatus> statuses);
+
 }

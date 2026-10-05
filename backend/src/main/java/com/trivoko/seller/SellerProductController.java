@@ -57,6 +57,12 @@ public class SellerProductController {
 		return productService.findForSeller(sellerAccess.currentSellerId(), status, pageable);
 	}
 
+	/** My live variants with fewer than 5 left (the dashboard's "low stock" card). */
+	@GetMapping("/low-stock")
+	public java.util.List<com.trivoko.catalog.dto.LowStockView> lowStock() {
+		return productService.lowStock(sellerAccess.currentSellerId());
+	}
+
 	@GetMapping("/{id}")
 	@PreAuthorize("@sellerAccess.isActiveSeller() and @sellerAccess.ownsProduct(#id)")
 	public SellerProductView get(@PathVariable Long id) {

@@ -28,6 +28,13 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 	@Query("update ProductVariant v set v.stock = v.stock + :qty where v.id = :id")
 	int giveBack(@Param("id") Long id, @Param("qty") int qty);
 
+	/** Seller dashboard: variants of my LIVE products that are running out (lowest first). */
+	@Query("""
+			select v from ProductVariant v join fetch v.product p
+			where p.seller.id = :sellerId and p.status = com.trivoko.catalog.ProductStatus.ACTIVE and v.stock < :below
+			order by v.stock, v.id""")
+	List<ProductVariant> lowStock(@Param("sellerId") Long sellerId, @Param("below") int below);
+
 	/** The stock in the database right now (not a cached entity). */
 	@Query("select v.stock from ProductVariant v where v.id = :id")
 	Integer currentStock(@Param("id") Long id);

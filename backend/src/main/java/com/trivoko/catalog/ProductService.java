@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.catalog.dto.BrandCount;
 import com.trivoko.catalog.dto.CartVariant;
+import com.trivoko.catalog.dto.LowStockView;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.catalog.dto.SellerProductRequest;
@@ -152,6 +153,20 @@ public class ProductService {
 	@Transactional
 	public void releaseStock(Map<Long, Integer> quantities) {
 		quantities.forEach(variants::giveBack);
+	}
+
+	/** Seller dashboard: "running low" means fewer than 5 left (Phase 5 default). */
+	public static final int LOW_STOCK_BELOW = 5;
+
+	public List<LowStockView> lowStock(Long sellerId) {
+		return variants.lowStock(sellerId, LOW_STOCK_BELOW).stream()
+			.map(v -> new LowStockView(v.getProduct().getId(), v.getProduct().getName(), v.getId(), v.getLabel(), v.getStock()))
+			.toList();
+	}
+
+	/** Seller dashboard: my products waiting for the admin. */
+	public long countWaitingForApproval(Long sellerId) {
+		return products.countBySeller_IdAndStatus(sellerId, ProductStatus.PENDING);
 	}
 
 	/**
