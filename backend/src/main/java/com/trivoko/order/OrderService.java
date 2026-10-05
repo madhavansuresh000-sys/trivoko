@@ -53,6 +53,8 @@ public class OrderService {
 
 	private final CartService cartService;
 
+	private final OrderNotifications notifications;
+
 	/** What happened to a payment message - for logs and tests. */
 	public enum PaidResult {
 		PAID, ALREADY_DONE, PAID_LATE, REFUNDED
@@ -103,6 +105,7 @@ public class OrderService {
 		Set<Long> bought = order.getPackages().stream().flatMap(p -> p.getItems().stream())
 			.map(OrderItem::getVariantId).collect(Collectors.toSet());
 		cartService.removeVariants(order.getUserId(), bought);
+		notifications.paid(order); // bell now, emails after the commit
 		log.info("Order {} PAID: {} packages PLACED", order.getNumber(), order.getPackages().size());
 	}
 

@@ -69,6 +69,11 @@ app:
     expiry-check: 60s       # how often the expiry job looks for unpaid orders
   scheduling:
     enabled: true           # tests switch the jobs off and call them directly
+  # Phase 4 emails (notify module). In dev they land in Mailpit: http://localhost:8026
+  mail:
+    from: ${MAIL_FROM:TriVoKo <no-reply@trivoko.test>}
+    enabled: ${MAIL_ENABLED:true}   # false = bell only (a demo server without a mail account)
+    retry-every: 60s                # failed emails are tried again (at most 5 times)
 
 ---
 # ---------- dev: your laptop (MySQL + Mailpit in Docker, see docker-compose.yml) ----------

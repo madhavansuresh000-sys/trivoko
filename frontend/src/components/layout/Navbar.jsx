@@ -13,6 +13,7 @@ import {
   StoreIcon, SunIcon, UserIcon,
 } from '../ui/icons'
 import Logo from './Logo'
+import NotificationBell from './NotificationBell'
 
 /**
  * The top bar on every page:
@@ -229,6 +230,7 @@ export default function Navbar() {
             </NavLink>
           )}
           <ThemeToggle />
+          {user && <NotificationBell />}
           <CartLink />
           <div className="hidden md:block">
             {user ? <AccountMenu user={user} /> : status === 'ready' && (
