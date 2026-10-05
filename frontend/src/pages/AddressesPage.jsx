@@ -134,7 +134,9 @@ export default function AddressesPage() {
                       Make default
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" className="text-red-700 dark:text-red-400" onClick={() => setDeleting(a)}>Delete</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDeleting(a)}>
+                    <span className="text-red-700 dark:text-red-400">Delete</span>
+                  </Button>
                 </div>
               </Card>
             ))}

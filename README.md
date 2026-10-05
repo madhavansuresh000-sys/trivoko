@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 2 - Accounts & roles** (October 2026): login with a secure cookie, customer / seller / admin roles, seller sign-up with admin approval, sellers manage their own products. 120 sample products from 8 shops. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
+> **Status: Phase 3 - Shop frontend** (October 2026): browse, search and filter 120 sample products from 8 shops, pick a size or colour, and fill ONE cart from many sellers - the cart is grouped into one package per seller and is kept when a guest logs in. Works on phones and in dark mode. Payment comes in Phase 4. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
 
 ## What it will do
 
@@ -61,6 +61,33 @@ API checks (backend running): `npx newman run postman/TriVoKo.postman_collection
 | `GET /api/categories` | The category tree (10 top categories x 3) |
 | `GET /api/sellers/{slug}` | A shop page (approved shops only) |
 | `POST /api/uploads/signature` | Logged-in only: a signature to upload one product photo straight to Cloudinary |
+
+Also: `GET /api/products?q=volta case` (every word must be in the name or brand; typo-tolerant search comes in
+Phase 10) and `GET /api/products/brands?category=phones` (brands with counts for the filter).
+
+### Shop pages (Phase 3)
+
+| Page | What you can do |
+|---|---|
+| `/` | Category chips and tiles, top deals, new arrivals |
+| `/products` | Filters (category, brand, price, in stock) and sort - all kept in the URL, so links can be shared |
+| `/products/{slug}` | Choose colour and size (sold-out sizes are crossed out), quantity, add to cart |
+| `/shops/{slug}` | A seller's shop page |
+| `/cart` | One box per seller (= one package), delivery per package: free from ₹499, else ₹40 |
+| `/login`, `/register` | A guest's cart is merged into the saved cart after login |
+| `/sell`, `/account/addresses` | Apply to become a seller; save up to 5 delivery addresses |
+
+### Cart API (Phase 3)
+
+Prices are never stored in the browser or the cart table - the server prices the cart from the catalogue every
+time (`CartPricing`), for the saved cart and the guest preview alike.
+
+| URL | Who | What it does |
+|---|---|---|
+| `POST /api/cart/preview` `{items:[{variantId, quantity}]}` | anyone | Prices a guest cart from the browser; nothing is saved |
+| `GET /api/cart` | logged in | My cart, grouped into packages per seller |
+| `PUT /api/cart/items/{variantId}` `{quantity}` · `DELETE ...` | logged in | Set a quantity (1-10, capped by stock) or remove a line; at most 30 lines |
+| `POST /api/cart/merge` | logged in | After login: the guest lines join my cart (same item = quantities added) |
 
 ### Accounts & roles API (Phase 2)
 
