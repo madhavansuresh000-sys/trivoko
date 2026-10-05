@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.mail.MailException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ import com.trivoko.user.UserService;
 /**
  * Sends the emails of notifications (Spring Mail; in dev they land in Mailpit: http://localhost:8026).
  *
- *   1) right after the commit that created the notification (@TransactionalEventListener AFTER_COMMIT)
+ *   1) right after the commit that created the notification (AFTER_COMMIT, on a background thread)
  *   2) if that failed (mail server down), the retry job tries again every minute - up to 5 times.
  *
  * The network call to the mail server is made OUTSIDE a database transaction (copied from EventHub).
@@ -57,6 +58,8 @@ public class EmailSender {
 		this.frontendUrl = frontendUrl;
 	}
 
+	/** @Async: on a background thread, so the request that paid the order answers at once (AsyncConfig). */
+	@Async
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void afterCommit(EmailQueued queued) {
 		send(queued.notificationId());

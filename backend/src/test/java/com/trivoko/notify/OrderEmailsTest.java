@@ -104,7 +104,7 @@ class OrderEmailsTest {
 	void customerAndEachSellerGetAnEmail() throws Exception {
 		pay();
 		ArgumentCaptor<SimpleMailMessage> sent = ArgumentCaptor.forClass(SimpleMailMessage.class);
-		verify(mail, times(3)).send(sent.capture());
+		verify(mail, org.mockito.Mockito.timeout(10_000).times(3)).send(sent.capture()); // sent in the background
 		assertThat(sent.getAllValues()).extracting(m -> m.getTo()[0])
 			.containsExactlyInAnyOrder("ravi@trivoko.test", "chennai.mobiles@trivoko.test", "kovai.sports@trivoko.test");
 		assertThat(sent.getAllValues()).anySatisfy(m -> assertThat(m.getSubject()).isEqualTo("Order " + number + " is placed"));
@@ -125,10 +125,29 @@ class OrderEmailsTest {
 		verify(mail, times(0)).send(any(SimpleMailMessage.class)); // placing the order sends nothing
 	}
 
+	/** Found in the browser: a slow mail server made "Pay" time out although the order WAS paid. */
+	@Test
+	void slowMailServerDoesNotSlowDownPaying() throws Exception {
+		org.mockito.Mockito.doAnswer(call -> {
+			Thread.sleep(3000); // a mail server that takes 3 s per email
+			return null;
+		}).when(mail).send(any(SimpleMailMessage.class));
+
+		long start = System.nanoTime();
+		pay();
+		long millis = (System.nanoTime() - start) / 1_000_000;
+
+		assertThat(millis).as("payment answered in %d ms", millis).isLessThan(2000);
+		assertThat(jdbc.queryForObject("SELECT status FROM orders WHERE number = ?", String.class, number)).isEqualTo("PAID");
+		// the emails still go out, a little later, in the background
+		verify(mail, org.mockito.Mockito.timeout(15_000).times(3)).send(any(SimpleMailMessage.class));
+	}
+
 	@Test
 	void mailServerDownIsRetriedLater() throws Exception {
 		doThrow(new MailSendException("Mailpit is down")).when(mail).send(any(SimpleMailMessage.class));
 		pay();
+		verify(mail, org.mockito.Mockito.timeout(10_000).times(3)).send(any(SimpleMailMessage.class)); // 3 failed tries
 		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE email_status = 'PENDING'", Integer.class)).isEqualTo(3);
 
 		doNothing().when(mail).send(any(SimpleMailMessage.class));

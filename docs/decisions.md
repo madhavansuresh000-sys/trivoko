@@ -74,3 +74,27 @@ Like a shopping trolley: you push it around, but the cashier scans every item's 
 Other choices (can be changed later): a cart line keeps a sold-out or blocked item (shown, not counted) so the
 customer sees what happened; delivery is per seller package (free from ₹499, else ₹40) and is only shown in
 Phase 3 - Phase 4 charges it.
+
+---
+
+## D5 - The order split: one payment, one package per seller, coupon share per item (Phase 4, 5 Oct 2026)
+
+One checkout = one payment = one order, split by `OrderSplitter` (pure Java, unit-tested) into one package per
+seller. Delivery is per package (free from Rs 499 of that package's items before the coupon, else Rs 40).
+The coupon discount is shared across ITEMS in proportion to their price, rounded to paise, with the last item
+taking the remainder - so the shares always add up exactly, and each item stores its own share.
+
+Why per item: in Phase 8 a returned item is refunded exactly `line_total - discount_share`; nothing has to be
+recalculated from a coupon that may have changed or expired since. Like a restaurant bill split by dish.
+
+Other choices made with it:
+
+- **Stock is held at "Pay"**, not at "add to cart": one atomic `UPDATE ... SET stock = stock - :qty WHERE stock >= :qty`
+  per item, in variant-id order (no deadlocks), all in the order's transaction - one item missing undoes every hold.
+  Proven by `StockConcurrencyTest` (100 customers, 10 units, exactly 10 orders).
+- **One unpaid order per customer**: a second "Pay" (another tab) returns the same payment page instead of
+  holding the stock twice. After 10 minutes the order EXPIRES and the stock goes back.
+- **A late payment** re-takes all the stock if it is still there, otherwise it is refunded automatically.
+- **Stripe sees one line** (the grand total), because coupon shares and delivery are already inside it.
+- **Emails go out after the commit, on a background thread** (found in the browser check: a slow mail server
+  made "Pay" time out although the order was paid), with retries every minute.
