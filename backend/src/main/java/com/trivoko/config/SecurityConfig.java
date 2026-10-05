@@ -43,7 +43,10 @@ public class SecurityConfig {
 			// read our cookie, so its forged POST has no valid header and gets 403.
 			// sessionAuthenticationStrategy: without server sessions Spring would think every request with
 			// our JWT cookie is a new login and change the token each time; keep one token instead.
-			.csrf(csrf -> csrf.spa().sessionAuthenticationStrategy((authentication, request, response) -> { }))
+			// The Stripe webhook is called by Stripe's server (no browser, no cookie): its SIGNATURE is the proof,
+			// so it needs neither login nor the CSRF token.
+			.csrf(csrf -> csrf.spa().sessionAuthenticationStrategy((authentication, request, response) -> { })
+				.ignoringRequestMatchers("/api/payments/stripe/webhook"))
 			.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
 			.cors(Customizer.withDefaults())
 			.addFilterBefore(new JwtCookieFilter(jwtService, userService), UsernamePasswordAuthenticationFilter.class)
@@ -54,6 +57,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
 				// a guest's cart lives in the browser; the server only prices it (nothing is saved)
 				.requestMatchers(HttpMethod.POST, "/api/cart/preview").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/payments/stripe/webhook").permitAll()
 				// any logged-in customer may apply for a shop and see their application
 				.requestMatchers("/api/seller/apply", "/api/seller/application").authenticated()
 				.requestMatchers("/api/seller/**").hasRole("SELLER")

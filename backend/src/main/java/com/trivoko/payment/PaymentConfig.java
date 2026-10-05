@@ -10,7 +10,7 @@ import org.springframework.core.env.Profiles;
 
 /**
  * Picks the payment gateway (copied from EventHub):
- *   STRIPE_SECRET_KEY set   -> real Stripe (test mode)            [added in Phase 4B]
+ *   STRIPE_SECRET_KEY set   -> real Stripe (test mode)
  *   not set (dev and tests) -> the built-in test payment page
  * On the real server (prod) a key is required - unless PAYMENTS_TEST_PAGE=true, which a public DEMO server
  * may set on purpose (the page says "no real money").
@@ -25,7 +25,8 @@ public class PaymentConfig {
 			@Value("${app.frontend-url}") String frontendUrl,
 			@Value("${app.payments.test-page-allowed:false}") boolean testPageAllowed, Environment env) {
 		if (!secretKey.isBlank()) {
-			throw new IllegalStateException("Stripe payments arrive in Phase 4B - remove STRIPE_SECRET_KEY for now");
+			log.info("Payments: Stripe ({} mode)", secretKey.startsWith("sk_live_") ? "LIVE" : "test");
+			return new StripePaymentGateway(secretKey, frontendUrl);
 		}
 		if (env.acceptsProfiles(Profiles.of("prod")) && !testPageAllowed) {
 			throw new IllegalStateException("STRIPE_SECRET_KEY is required in prod (or PAYMENTS_TEST_PAGE=true for a demo server)");

@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * The outside payment company, behind one small interface (like a plug socket - copied from EventHub):
- *   StripePaymentGateway - real Stripe Checkout in test mode (when STRIPE_SECRET_KEY is in .env)  [Phase 4B]
+ *   StripePaymentGateway - real Stripe Checkout in test mode (when STRIPE_SECRET_KEY is in .env)
  *   FakePaymentGateway   - a built-in test page for development (no keys needed)
  * The order code only talks to this interface, so it works the same with both.
  */
