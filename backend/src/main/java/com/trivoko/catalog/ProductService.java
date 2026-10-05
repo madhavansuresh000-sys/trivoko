@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.catalog.dto.BrandCount;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.catalog.dto.SellerProductRequest;
@@ -81,7 +82,22 @@ public class ProductService {
 		if (search.seller() != null && !search.seller().isBlank()) {
 			spec = spec.and(ProductSpecifications.soldBy(search.seller()));
 		}
+		if (search.q() != null && !search.q().isBlank()) {
+			spec = spec.and(ProductSpecifications.matchesWords(search.q()));
+		}
 		return PageResponse.from(products.findAll(spec, pageable), CatalogMapper::toCard);
+	}
+
+	/**
+	 * The brand checkboxes of the filter: brands of the visible products, with how many each has.
+	 * No category = every brand in the shop. An unknown category simply has no brands (empty list).
+	 */
+	public List<BrandCount> brands(String category) {
+		if (category == null || category.isBlank()) {
+			return products.countVisibleByBrand();
+		}
+		List<Long> categoryIds = categoryService.idsWithChildrenOrEmpty(category);
+		return categoryIds.isEmpty() ? List.of() : products.countVisibleByBrandIn(categoryIds);
 	}
 
 	/** The product page. A product that is not live (draft, pending, blocked ...) is "not found" for the public. */

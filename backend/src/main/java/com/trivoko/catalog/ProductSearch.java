@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * The filters of GET /api/products, e.g. ?category=phones&brand=Volta&maxPrice=15000&inStock=true.
+ * The filters of GET /api/products, e.g. ?category=phones&brand=Volta&maxPrice=15000&inStock=true&q=case.
  * Every field is optional (null / empty = no filter).
  */
 public record ProductSearch(
@@ -13,5 +13,6 @@ public record ProductSearch(
 		BigDecimal minPrice,
 		BigDecimal maxPrice,
 		boolean inStockOnly,
-		String seller) {
+		String seller,
+		String q) {
 }

@@ -33,6 +33,18 @@ public class CategoryService {
 		return ids;
 	}
 
+	/**
+	 * Like idsWithChildren, but an unknown slug gives an empty list instead of a 404. (Throwing inside this
+	 * @Transactional class would mark the caller's transaction "rollback only", even if the caller catches it.)
+	 */
+	public List<Long> idsWithChildrenOrEmpty(String slug) {
+		return categories.findBySlug(slug).map(category -> {
+			List<Long> ids = new ArrayList<>();
+			collect(category, ids);
+			return ids;
+		}).orElse(List.of());
+	}
+
 	private void collect(Category category, List<Long> ids) {
 		ids.add(category.getId());
 		category.getChildren().forEach(child -> collect(child, ids));
