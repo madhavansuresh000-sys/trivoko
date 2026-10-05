@@ -99,17 +99,19 @@ public class CheckoutService {
 	public PlacedOrder place(Long userId, PlaceOrderRequest request) {
 		AddressView address = addressService.get(userId, request.addressId()); // someone else's -> 404
 
-		// one unpaid order at a time: a second "Pay" (another tab, a double click) goes back to the same page
+		// one unpaid order at a time. The SAME order again (another tab, a double click) goes back to its page;
+		// a CHANGED cart, coupon or address replaces it (its stock and coupon are freed first), so nobody ever
+		// pays for an old version of their cart.
 		var pending = orders.findFirstByUserIdAndStatusOrderByIdDesc(userId, OrderStatus.PENDING_PAYMENT);
 		if (pending.isPresent()) {
 			Order order = pending.get();
-			if (order.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
+			if (order.getHoldExpiresAt().isAfter(LocalDateTime.now()) && sameAs(order, userId, request.couponCode(), address)) {
 				String page = paymentService.openPageOf(order.getId()).orElse(null);
 				if (page != null) {
 					return new PlacedOrder(order.getNumber(), order.getGrandTotal(), page);
 				}
 			}
-			orderService.expire(order); // its 10 minutes are over (the job has not run yet): free its stock now
+			orderService.expire(order); // out of time, or replaced by this new checkout
 		}
 
 		Built built = build(userId, request.couponCode(), address);
@@ -203,6 +205,17 @@ public class CheckoutService {
 				p.itemsTotal(), p.discount(), p.shippingFee(), p.total())).toList();
 		return new Built(new CheckoutPreview(address, packages, split.itemsTotal(), split.discountTotal(),
 				split.shippingTotal(), split.grandTotal(), coupon, unavailable), split);
+	}
+
+	/** Is this checkout the same as the unpaid order: same cart lines and quantities, coupon and address? */
+	private boolean sameAs(Order order, Long userId, String couponCode, AddressView address) {
+		Map<Long, Integer> ordered = new LinkedHashMap<>();
+		order.getPackages().forEach(p -> p.getItems().forEach(i -> ordered.merge(i.getVariantId(), i.getQuantity(), Integer::sum)));
+		Map<Long, Integer> inCart = new LinkedHashMap<>();
+		cartService.checkoutLines(userId).forEach(l -> inCart.merge(l.variantId(), l.quantity(), Integer::sum));
+		String code = couponCode == null || couponCode.isBlank() ? null : couponCode.trim().toUpperCase(java.util.Locale.ROOT);
+		return ordered.equals(inCart) && java.util.Objects.equals(code, order.getCouponCode())
+				&& order.shipTo().equals(shipTo(address));
 	}
 
 	private static Order.ShipTo shipTo(AddressView a) {

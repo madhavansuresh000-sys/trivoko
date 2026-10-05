@@ -153,6 +153,28 @@ class CheckoutTest {
 		assertThat(t.stock(chennai)).isEqualTo(stockAfterFirst); // not held twice
 	}
 
+	/** Final review: the cart CHANGED after an unpaid order -> the old order is replaced, never paid by mistake. */
+	@Test
+	void changedCartReplacesThePendingOrder() throws Exception {
+		String firstTotal = t.previewTotal(ravi, address, null);
+		String first = t.place(ravi, address, null, firstTotal).andReturn().getResponse().getContentAsString();
+		int chennaiAfterFirst = t.stock(chennai);
+
+		t.addToCart(ravi, chennai, 3); // he changes his mind: 3 cases instead of 2
+		String secondTotal = t.previewTotal(ravi, address, null);
+		String second = t.place(ravi, address, null, secondTotal)
+			.andExpect(status().isCreated())
+			.andReturn().getResponse().getContentAsString();
+
+		String firstNumber = JsonPath.read(first, "$.number");
+		assertThat((String) JsonPath.read(second, "$.number")).isNotEqualTo(firstNumber);
+		assertThat(jdbc.queryForObject("SELECT status FROM orders WHERE number = ?", String.class, firstNumber))
+			.isEqualTo("EXPIRED");
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM orders WHERE status = 'PENDING_PAYMENT'", Integer.class))
+			.isEqualTo(1);
+		assertThat(t.stock(chennai)).isEqualTo(chennaiAfterFirst + 2 - 3); // old hold released, new one taken
+	}
+
 	@Test
 	void invalidCouponCannotBePlaced() throws Exception {
 		String total = t.previewTotal(ravi, address, null);
