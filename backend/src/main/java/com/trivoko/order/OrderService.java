@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.cart.CartService;
 import com.trivoko.catalog.ProductService;
-import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.coupon.CouponService;
@@ -81,10 +80,7 @@ public class OrderService {
 			}
 			case EXPIRED -> {
 				// paid after the 10 minutes: the stock went back on the shelf - is it all still there?
-				try {
-					productService.holdStock(quantities(order));
-				}
-				catch (BusinessRuleException soldMeanwhile) {
+				if (!productService.tryHoldStock(quantities(order))) {
 					log.info("Order {} paid late and the stock is gone: refunding", order.getNumber());
 					paymentService.refund(sessionId);
 					return PaidResult.REFUNDED;
@@ -153,6 +149,11 @@ public class OrderService {
 		orders.findById(payment.getOrderId()).filter(o -> o.getUserId().equals(userId))
 			.orElseThrow(() -> new ResourceNotFoundException("Payment", sessionId));
 		return payment;
+	}
+
+	/** "Verify on return": has the payment company seen the money? */
+	public boolean paidAtProvider(String sessionId) {
+		return paymentService.confirmedByProvider(sessionId);
 	}
 
 	public String numberOf(Long orderId) {

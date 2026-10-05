@@ -129,6 +129,25 @@ public class ProductService {
 		}
 	}
 
+	/**
+	 * Like holdStock, but answers true/false instead of throwing, and gives back what it already took when a
+	 * later line fails. For a LATE payment: "is all the stock still there? then take it; if not, refund" - an
+	 * exception here would mark the caller's transaction rollback-only and the refund could not be saved.
+	 */
+	@Transactional
+	public boolean tryHoldStock(Map<Long, Integer> quantities) {
+		Map<Long, Integer> taken = new java.util.LinkedHashMap<>();
+		for (Long variantId : new java.util.TreeSet<>(quantities.keySet())) {
+			int qty = quantities.get(variantId);
+			if (variants.take(variantId, qty) == 0) {
+				taken.forEach(variants::giveBack);
+				return false;
+			}
+			taken.put(variantId, qty);
+		}
+		return true;
+	}
+
 	/** Puts held stock back (an unpaid order expired, or a payment was refunded). */
 	@Transactional
 	public void releaseStock(Map<Long, Integer> quantities) {
