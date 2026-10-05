@@ -62,4 +62,12 @@ public class ImageUploadService {
 				"https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload");
 	}
 
+	/**
+	 * Is this a photo in OUR Cloudinary account? Sellers send the URLs Cloudinary gave their browser; anything
+	 * else (another website, another Cloudinary account) is refused, so the shop never shows foreign pictures.
+	 */
+	public boolean isOurPhoto(String url) {
+		return !cloudName.isBlank() && url != null && url.startsWith("https://res.cloudinary.com/" + cloudName + "/");
+	}
+
 }

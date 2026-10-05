@@ -1,5 +1,7 @@
 package com.trivoko.seller;
 
+import java.util.List;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.trivoko.catalog.ProductService;
+import com.trivoko.catalog.dto.ImageInput;
+import com.trivoko.catalog.dto.LowStockView;
+import com.trivoko.catalog.dto.ProductDetail.ImageView;
 import com.trivoko.catalog.ProductStatus;
 import com.trivoko.catalog.dto.SellerProductRequest;
 import com.trivoko.catalog.dto.SellerProductView;
@@ -59,7 +64,7 @@ public class SellerProductController {
 
 	/** My live variants with fewer than 5 left (the dashboard's "low stock" card). */
 	@GetMapping("/low-stock")
-	public java.util.List<com.trivoko.catalog.dto.LowStockView> lowStock() {
+	public List<LowStockView> lowStock() {
 		return productService.lowStock(sellerAccess.currentSellerId());
 	}
 
@@ -73,6 +78,13 @@ public class SellerProductController {
 	@PreAuthorize("@sellerAccess.isActiveSeller() and @sellerAccess.ownsProduct(#id)")
 	public SellerProductView update(@PathVariable Long id, @Valid @RequestBody SellerProductRequest request) {
 		return productService.updateBySeller(id, request);
+	}
+
+	/** The photo list in its new order (the editor sends the whole list; max 8). */
+	@PutMapping("/{id}/images")
+	@PreAuthorize("@sellerAccess.isActiveSeller() and @sellerAccess.ownsProduct(#id)")
+	public List<ImageView> images(@PathVariable Long id, @Valid @RequestBody List<@Valid ImageInput> photos) {
+		return productService.replaceImages(id, photos);
 	}
 
 	@PostMapping("/{id}/submit")
