@@ -19,6 +19,11 @@ import { loadCart } from './store/cartSlice'
 const StyleGuidePage = lazy(() => import('./pages/StyleGuidePage'))
 const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'))
 const AddressesPage = lazy(() => import('./pages/AddressesPage'))
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'))
+const TestPaymentPage = lazy(() => import('./pages/TestPaymentPage'))
+const PaymentResultPage = lazy(() => import('./pages/PaymentResultPage'))
+const OrdersPage = lazy(() => import('./pages/OrdersPage'))
+const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 
 export default function App() {
   const dispatch = useDispatch()
@@ -42,6 +47,12 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route path="sell" element={<BecomeSellerPage />} />
           <Route path="account/addresses" element={<AddressesPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="test-payment/:session" element={<TestPaymentPage />} />
+          <Route path="payment/success" element={<PaymentResultPage />} />
+          <Route path="payment/cancelled" element={<PaymentResultPage cancelled />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:number" element={<OrderDetailPage />} />
         </Route>
         <Route path="style-guide" element={<StyleGuidePage />} />
         <Route path="*" element={<NotFoundPage />} />

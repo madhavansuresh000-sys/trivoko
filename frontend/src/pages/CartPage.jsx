@@ -78,10 +78,11 @@ function PriceDetails({ view, user }) {
           <dt>Total</dt><dd>{formatRupees(view.total)}</dd>
         </div>
       </dl>
-      <Button size="lg" className="w-full" disabled>Checkout</Button>
+      <Button size="lg" className="w-full" disabled={view.itemCount === 0} to={user ? '/checkout' : '/login?next=/checkout'}>
+        {user ? 'Checkout' : 'Log in to checkout'}
+      </Button>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Checkout and payment open in the next update. Prices are checked again at checkout.
-        {!user && <> <Link to="/login?next=/cart" className="font-medium text-brand-700 hover:underline dark:text-brand-300">Log in</Link> to save this cart.</>}
+        You pay once; each seller ships their own package. Prices are checked again at checkout.
       </p>
     </Card>
   )
