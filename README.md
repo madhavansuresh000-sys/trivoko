@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 4 - Checkout & payments** (October 2026): pay ONCE for a cart from many sellers; the order is split into one package per seller, stock is held safely while you pay (10 minutes), coupons are shared fairly across items, and the customer and each seller get an email. Stripe Checkout (test mode) or a built-in test payment page. PDF invoices.
+> **Status: Phase 5 - Seller dashboard** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded).
 
 ## What it will do
 
@@ -76,6 +76,25 @@ Phase 10) and `GET /api/products/brands?category=phones` (brands with counts for
 | `/cart` | One box per seller (= one package), delivery per package: free from ₹499, else ₹40 |
 | `/login`, `/register` | A guest's cart is merged into the saved cart after login |
 | `/sell`, `/account/addresses` | Apply to become a seller; save up to 5 delivery addresses |
+
+### Seller back office (Phase 5)
+
+```
+ PLACED --seller--> PACKED --tracking no.--> SHIPPED --> DELIVERED (+90% into the seller's ledger)
+    └──── customer or seller, before shipping ────> CANCELLED (that package refunded, stock back)
+```
+
+| URL | Who | What it does |
+|---|---|---|
+| `GET /api/seller/dashboard`, `GET /api/seller/sales?days=7\|30\|90` | active seller | To pack, low stock, balance, today's sales; daily sales for the chart (cached a minute) |
+| `GET /api/seller/packages?status=`, `POST /api/seller/packages/{id}/pack` · `ship {trackingNumber}` · `deliver` · `cancel {reason}` | owner seller | The packing table; another shop's package = 403; an illegal move = 409 |
+| `POST /api/orders/{number}/packages/{id}/cancel` | the customer | Cancel one package before shipping (partial refund) |
+| `GET /api/seller/ledger` | active seller | Balance (sum of the lines) and the lines |
+| `GET /api/seller/products/low-stock`, `PUT /api/seller/products/{id}/images` | owner seller | Variants with fewer than 5 left; the photo list (max 8, only our Cloudinary photos) |
+
+Pages: `/seller` (dashboard), `/seller/orders`, `/seller/products` (+ editor with photos), `/seller/earnings`,
+`/seller/analytics`. The customer's order page shows a tracking timeline per package. Two people changing the same
+package at once: `@Version` makes one of them get 409 (`PackageMovesTest.cancelVsShipRace`).
 
 ### Checkout & payments (Phase 4)
 
