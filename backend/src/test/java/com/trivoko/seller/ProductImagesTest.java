@@ -77,6 +77,15 @@ class ProductImagesTest {
 		mvc.perform(get("/api/products/" + slug)).andExpect(jsonPath("$.images[0].url").value(OURS + "shoe-1.jpg"));
 	}
 
+	/** The seller's editor shows the current photos (also for drafts, which the public cannot see). */
+	@Test
+	void theSellersProductViewListsThePhotos() throws Exception {
+		save(kovai, product, photos(2));
+		mvc.perform(get("/api/seller/products/" + product).cookie(kovai))
+			.andExpect(jsonPath("$.images.length()").value(2))
+			.andExpect(jsonPath("$.images[0].url").value(OURS + "shoe-0.jpg"));
+	}
+
 	@Test
 	void atMostEightPhotos() throws Exception {
 		save(kovai, product, photos(9)).andExpect(status().isBadRequest());

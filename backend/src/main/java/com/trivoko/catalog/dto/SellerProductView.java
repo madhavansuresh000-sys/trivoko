@@ -24,6 +24,7 @@ public record SellerProductView(
 		BigDecimal priceFrom,
 		BigDecimal mrpFrom,
 		List<Variant> variants,
+		List<ProductDetail.ImageView> images,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt) {
 

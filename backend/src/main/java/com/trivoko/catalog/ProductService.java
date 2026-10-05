@@ -449,7 +449,9 @@ public class ProductService {
 			.toList();
 		return new SellerProductView(p.getId(), p.getName(), p.getSlug(), p.getBrand(), p.getDescription(),
 				p.getCategory().getId(), p.getCategory().getName(), p.getStatus(), p.getRejectionReason(),
-				p.getPriceFrom(), p.getMrpFrom(), vs, p.getCreatedAt(), p.getUpdatedAt());
+				p.getPriceFrom(), p.getMrpFrom(), vs,
+				p.getImages().stream().map(img -> new ProductDetail.ImageView(img.getUrl(), img.getAltText())).toList(),
+				p.getCreatedAt(), p.getUpdatedAt());
 	}
 
 	private static String blankToNull(String s) {
