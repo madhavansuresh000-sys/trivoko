@@ -89,7 +89,7 @@ class OrderEmailsTest {
 
 	@AfterEach
 	void clean() {
-		for (String table : List.of("notifications", "payments", "order_items", "packages", "orders", "cart_items", "carts",
+		for (String table : List.of("notifications", "payments", "order_items", "package_events", "seller_ledger", "packages", "orders", "cart_items", "carts",
 				"addresses", "processed_payment_events")) {
 			jdbc.update("DELETE FROM " + table);
 		}

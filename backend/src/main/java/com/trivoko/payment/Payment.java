@@ -48,6 +48,11 @@ public class Payment {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt = LocalDateTime.now();
 
+	/** Partial refunds (one cancelled package each) add up here. */
+	@Setter
+	@Column(name = "refunded_amount", nullable = false, precision = 12, scale = 2)
+	private BigDecimal refundedAmount = BigDecimal.ZERO;
+
 	@Setter
 	@Column(name = "paid_at")
 	private LocalDateTime paidAt;

@@ -94,6 +94,8 @@ final class CheckoutTestSupport {
 		jdbc.update("DELETE FROM coupon_redemptions");
 		jdbc.update("DELETE FROM payments");
 		jdbc.update("DELETE FROM order_items");
+		jdbc.update("DELETE FROM package_events");
+		jdbc.update("DELETE FROM seller_ledger");
 		jdbc.update("DELETE FROM packages");
 		jdbc.update("DELETE FROM orders");
 		jdbc.update("DELETE FROM cart_items");
