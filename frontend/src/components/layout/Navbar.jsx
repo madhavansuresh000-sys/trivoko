@@ -5,7 +5,7 @@ import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-
 import useCategories from '../../hooks/useCategories'
 import useTheme from '../../hooks/useTheme'
 import { lookOf } from '../../lib/categoryLook'
-import { firstName, isActiveSeller, logout, selectAuthStatus, selectUser } from '../../store/authSlice'
+import { firstName, isActiveSeller, isAdmin, logout, selectAuthStatus, selectUser } from '../../store/authSlice'
 import { selectCartCount } from '../../store/cartSlice'
 import { notify } from '../../store/notificationsSlice'
 import {
@@ -146,6 +146,7 @@ function AccountMenu({ user }) {
           <Link to="/orders" className={menuItem} onClick={close}><PackageIcon className="h-4 w-4" /> My orders</Link>
           <Link to="/account/addresses" className={menuItem} onClick={close}><MapPinIcon className="h-4 w-4" /> My addresses</Link>
           <Link to={shopLink} className={menuItem} onClick={close}><StoreIcon className="h-4 w-4" /> {shopLabel}</Link>
+          {isAdmin(user) && <Link to="/admin" className={menuItem} onClick={close}><GridIcon className="h-4 w-4" /> Admin panel</Link>}
           <button type="button" className={menuItem} onClick={() => { close(); doLogout() }}>
             <LogoutIcon className="h-4 w-4" /> Log out
           </button>
@@ -191,6 +192,7 @@ function MobileMenu({ user }) {
             <Link to="/orders" className={link}>My orders</Link>
             <Link to="/account/addresses" className={link}>My addresses</Link>
             <Link to={isActiveSeller(user) ? '/seller' : '/sell'} className={link}>{isActiveSeller(user) ? 'My shop' : user.seller ? 'My shop application' : 'Become a seller'}</Link>
+            {isAdmin(user) && <Link to="/admin" className={link}>Admin panel</Link>}
             <button type="button" className={`${link} w-full text-left`} onClick={doLogout}>Log out</button>
           </>
         ) : (
