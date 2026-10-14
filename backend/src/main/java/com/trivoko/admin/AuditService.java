@@ -2,6 +2,8 @@ package com.trivoko.admin;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,13 @@ public class AuditService {
 		Long actor = AuthUser.current().map(AuthUser::id).orElse(null);
 		String shortDetails = details == null || details.length() <= MAX_DETAILS ? details : details.substring(0, MAX_DETAILS);
 		logs.save(new AuditLog(actor, action, entityType, entityId, shortDetails));
+	}
+
+	/** The activity log page (Phase 6): everything, or one action (e.g. SELLER_BLOCKED), newest first. */
+	@Transactional(readOnly = true)
+	public Page<AuditLog> activity(String action, Pageable pageable) {
+		return action == null || action.isBlank() ? logs.findAllByOrderByIdDesc(pageable)
+				: logs.findByActionOrderByIdDesc(action.trim().toUpperCase(java.util.Locale.ROOT), pageable);
 	}
 
 	/** Newest first. */

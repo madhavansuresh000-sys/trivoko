@@ -59,6 +59,10 @@ public class Seller {
 	@Column(name = "reject_reason", length = 300)
 	private String rejectReason;
 
+	/** Why the admin blocked the shop (Phase 6, shown to the owner). */
+	@Column(name = "block_reason", length = 300)
+	private String blockReason;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;

@@ -14,6 +14,7 @@ import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.Money;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.coupon.dto.CouponRequest;
+import com.trivoko.coupon.dto.CouponUpdateRequest;
 import com.trivoko.coupon.dto.CouponView;
 
 import lombok.RequiredArgsConstructor;
@@ -111,6 +112,45 @@ public class CouponService {
 		Coupon saved = coupons.save(coupon);
 		audit.record("COUPON_CREATED", "COUPON", saved.getId(), code);
 		return view(saved);
+	}
+
+	/** Phase 6: change the amounts, minimum or end date. An ended coupon cannot be edited (create a new one). */
+	@Transactional
+	public CouponView update(Long id, CouponUpdateRequest request) {
+		Coupon coupon = get(id);
+		if (!coupon.isActive()) {
+			throw new BusinessRuleException("This coupon has ended and cannot be changed.");
+		}
+		if (coupon.getType() == CouponType.PERCENT && request.value().compareTo(new BigDecimal("90")) > 0) {
+			throw new BusinessRuleException("A percent coupon can take at most 90% off.");
+		}
+		coupon.setDescription(request.description().trim());
+		coupon.setValue(Money.round(request.value()));
+		coupon.setMaxDiscount(coupon.getType() == CouponType.PERCENT && request.maxDiscount() != null
+				? Money.round(request.maxDiscount()) : null);
+		coupon.setMinOrder(Money.round(request.minOrder() == null ? BigDecimal.ZERO : request.minOrder()));
+		coupon.setValidUntil(request.validUntil());
+		audit.record("COUPON_UPDATED", "COUPON", coupon.getId(), coupon.getCode());
+		return view(coupon);
+	}
+
+	/**
+	 * Ends a coupon now: it stops working at once (quote() refuses inactive coupons). It is never deleted, because
+	 * past orders and redemptions still point to it.
+	 */
+	@Transactional
+	public CouponView end(Long id) {
+		Coupon coupon = get(id);
+		if (!coupon.isActive()) {
+			throw new BusinessRuleException("This coupon has already ended.");
+		}
+		coupon.setActive(false);
+		audit.record("COUPON_ENDED", "COUPON", coupon.getId(), coupon.getCode());
+		return view(coupon);
+	}
+
+	private Coupon get(Long id) {
+		return coupons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Coupon", id));
 	}
 
 	private static BigDecimal discount(Coupon coupon, BigDecimal itemsTotal) {

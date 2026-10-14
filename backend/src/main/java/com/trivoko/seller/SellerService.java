@@ -3,14 +3,19 @@ package com.trivoko.seller;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.admin.AuditService;
 import com.trivoko.common.BusinessRuleException;
+import com.trivoko.common.Likes;
+import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.common.Slugs;
+import com.trivoko.notify.NotificationKind;
+import com.trivoko.notify.NotificationService;
 import com.trivoko.seller.dto.SellerApplicationView;
 import com.trivoko.seller.dto.SellerApplyRequest;
 import com.trivoko.seller.dto.SellerProfile;
@@ -24,6 +29,7 @@ import com.trivoko.user.UserService;
  * <pre>
  *   customer --apply--> PENDING --approve--> APPROVED (+ SELLER role) --block--> BLOCKED
  *                          └--reject(reason)--> REJECTED --apply again--> PENDING
+ *   BLOCKED --unblock--> APPROVED (Phase 6)
  * </pre>
  */
 @Service
@@ -36,10 +42,14 @@ public class SellerService {
 
 	private final AuditService audit;
 
-	SellerService(SellerRepository sellers, UserService userService, AuditService audit) {
+	private final NotificationService notifications;
+
+	SellerService(SellerRepository sellers, UserService userService, AuditService audit,
+			NotificationService notifications) {
 		this.sellers = sellers;
 		this.userService = userService;
 		this.audit = audit;
+		this.notifications = notifications;
 	}
 
 	/** A shop page is public only after the admin has approved the shop. */
@@ -105,8 +115,13 @@ public class SellerService {
 
 	// ---------- Admin decisions ----------
 
-	public List<SellerApplicationView> listByStatus(SellerStatus status) {
-		return sellers.findByStatusOrderByIdAsc(status).stream().map(SellerService::view).toList();
+	/** The admin's shop list (Phase 6): status null = all; q searches shop name, city and slug. */
+	public PageResponse<SellerApplicationView> search(SellerStatus status, String q, Pageable pageable) {
+		return PageResponse.from(sellers.search(status, Likes.contains(q), pageable), SellerService::view);
+	}
+
+	public long countByStatus(SellerStatus status) {
+		return sellers.countByStatus(status);
 	}
 
 	/** PENDING -> APPROVED, and the owner gets the SELLER role (it works at once, see JwtCookieFilter). */
@@ -117,6 +132,9 @@ public class SellerService {
 		shop.setRejectReason(null);
 		userService.addRole(shop.getOwnerId(), Role.SELLER);
 		audit.record("SELLER_APPROVED", "SELLER", shop.getId(), shop.getShopName());
+		tellOwner(shop, NotificationKind.SHOP_APPROVED, "Your shop " + shop.getShopName() + " is approved",
+				"Welcome to TriVoKo! Add your products in the seller back office; each one goes live after a quick check.",
+				"/seller");
 		return view(shop);
 	}
 
@@ -126,21 +144,43 @@ public class SellerService {
 		shop.setStatus(SellerStatus.REJECTED);
 		shop.setRejectReason(reason.trim());
 		audit.record("SELLER_REJECTED", "SELLER", shop.getId(), reason.trim());
+		tellOwner(shop, NotificationKind.SHOP_REJECTED, "Your shop application was not approved",
+				"Reason: " + reason.trim() + " You can correct the details and apply again.", "/sell");
 		return view(shop);
 	}
 
 	/**
-	 * Any shop can be blocked. The SELLER role stays, but SellerAccess refuses every seller URL for a
-	 * shop that is not APPROVED, so the block works at once.
+	 * Any shop can be blocked, with a reason the owner sees. The SELLER role stays, but SellerAccess refuses every
+	 * seller URL for a shop that is not APPROVED, and every shop query shows only APPROVED shops' products
+	 * (ProductSpecifications.visibleInShop), so the block works at once.
 	 */
 	@Transactional
-	public SellerApplicationView block(Long sellerId) {
+	public SellerApplicationView block(Long sellerId, String reason) {
 		Seller shop = get(sellerId);
 		if (shop.getStatus() == SellerStatus.BLOCKED) {
 			throw new BusinessRuleException("This shop is already blocked.");
 		}
 		shop.setStatus(SellerStatus.BLOCKED);
-		audit.record("SELLER_BLOCKED", "SELLER", shop.getId(), shop.getShopName());
+		shop.setBlockReason(reason.trim());
+		audit.record("SELLER_BLOCKED", "SELLER", shop.getId(), shop.getShopName() + ": " + reason.trim());
+		tellOwner(shop, NotificationKind.SHOP_BLOCKED, "Your shop " + shop.getShopName() + " is blocked",
+				"Your products are hidden from the shop. Reason: " + reason.trim(), "/sell");
+		return view(shop);
+	}
+
+	/** BLOCKED -> APPROVED: the products are back in the shop at once (no second review, spec 3 [default]). */
+	@Transactional
+	public SellerApplicationView unblock(Long sellerId) {
+		Seller shop = get(sellerId);
+		if (shop.getStatus() != SellerStatus.BLOCKED) {
+			throw new BusinessRuleException("Only a BLOCKED shop can be unblocked (this one is " + shop.getStatus() + ").");
+		}
+		shop.setStatus(SellerStatus.APPROVED);
+		shop.setBlockReason(null);
+		userService.addRole(shop.getOwnerId(), Role.SELLER); // a shop blocked while PENDING never had the role
+		audit.record("SELLER_UNBLOCKED", "SELLER", shop.getId(), shop.getShopName());
+		tellOwner(shop, NotificationKind.SHOP_UNBLOCKED, "Your shop " + shop.getShopName() + " is open again",
+				"Your products are back in the shop.", "/seller");
 		return view(shop);
 	}
 
@@ -150,6 +190,17 @@ public class SellerService {
 	}
 
 	// ---------- helpers ----------
+
+	/** Bell + email to the shop owner (the email goes out after the commit, notify module). */
+	private void tellOwner(Seller shop, NotificationKind kind, String title, String body, String link) {
+		notifications.create(shop.getOwnerId(), kind, title, body, link, true);
+	}
+
+	/** For the catalogue's product decisions: tell the owner of this shop (bell, and email when asked). */
+	@Transactional
+	public void notifyOwner(Long sellerId, NotificationKind kind, String title, String body, String link, boolean email) {
+		notifications.create(get(sellerId).getOwnerId(), kind, title, body, link, email);
+	}
 
 	private Seller get(Long sellerId) {
 		return sellers.findById(sellerId).orElseThrow(() -> new ResourceNotFoundException("Seller", sellerId));
@@ -179,7 +230,7 @@ public class SellerService {
 
 	static SellerApplicationView view(Seller s) {
 		return new SellerApplicationView(s.getId(), s.getOwnerId(), s.getShopName(), s.getSlug(), s.getCity(),
-				s.getDescription(), s.getGstin(), s.getStatus(), s.getRejectReason());
+				s.getDescription(), s.getGstin(), s.getStatus(), s.getRejectReason(), s.getBlockReason(), s.getCreatedAt());
 	}
 
 	private static String blankToNull(String s) {
