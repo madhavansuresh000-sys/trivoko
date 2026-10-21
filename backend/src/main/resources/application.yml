@@ -16,6 +16,12 @@ spring:
       hibernate.default_batch_fetch_size: 50
   flyway:
     enabled: true
+  # a slow or missing mail server must never hold a request or a test for minutes (EmailSender retries later)
+  mail:
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
   cache:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s
@@ -56,6 +62,24 @@ app:
   demo:
     # from .env (DEMO_PASSWORD): the password of the demo accounts (DevDataSeeder); empty = locked
     password: ${DEMO_PASSWORD:}
+  # Phase 4: where the shop runs (payment pages send the customer back here)
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # Phase 4 payments: empty key = the built-in TEST payment page (PaymentConfig); keys come from .env
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  payments:
+    test-page-allowed: ${PAYMENTS_TEST_PAGE:false}
+  order:
+    hold-time: 10m          # stock is kept this long while the customer pays
+    expiry-check: 60s       # how often the expiry job looks for unpaid orders
+  scheduling:
+    enabled: true           # tests switch the jobs off and call them directly
+  # Phase 4 emails (notify module). In dev they land in Mailpit: http://localhost:8026
+  mail:
+    from: ${MAIL_FROM:TriVoKo <no-reply@trivoko.test>}
+    enabled: ${MAIL_ENABLED:true}   # false = bell only (a demo server without a mail account)
+    retry-every: 60s                # failed emails are tried again (at most 5 times)
 
 ---
 # ---------- dev: your laptop (MySQL + Mailpit in Docker, see docker-compose.yml) ----------

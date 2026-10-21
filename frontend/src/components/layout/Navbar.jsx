@@ -9,10 +9,11 @@ import { firstName, logout, selectAuthStatus, selectUser } from '../../store/aut
 import { selectCartCount } from '../../store/cartSlice'
 import { notify } from '../../store/notificationsSlice'
 import {
-  CartIcon, ChevronDownIcon, CloseIcon, GridIcon, LogoutIcon, MapPinIcon, MenuIcon, MoonIcon, SearchIcon,
+  CartIcon, ChevronDownIcon, CloseIcon, GridIcon, LogoutIcon, MapPinIcon, MenuIcon, MoonIcon, PackageIcon, SearchIcon,
   StoreIcon, SunIcon, UserIcon,
 } from '../ui/icons'
 import Logo from './Logo'
+import NotificationBell from './NotificationBell'
 
 /**
  * The top bar on every page:
@@ -141,6 +142,7 @@ function AccountMenu({ user }) {
       {(close) => (
         <div className="w-56">
           <p className="truncate px-3 pb-2 pt-1 text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+          <Link to="/orders" className={menuItem} onClick={close}><PackageIcon className="h-4 w-4" /> My orders</Link>
           <Link to="/account/addresses" className={menuItem} onClick={close}><MapPinIcon className="h-4 w-4" /> My addresses</Link>
           <Link to="/sell" className={menuItem} onClick={close}><StoreIcon className="h-4 w-4" /> {shopLabel}</Link>
           <button type="button" className={menuItem} onClick={() => { close(); doLogout() }}>
@@ -185,6 +187,7 @@ function MobileMenu({ user }) {
         {user ? (
           <>
             <p className="px-3 pb-1 text-xs text-slate-500 dark:text-slate-400">Logged in as {user.email}</p>
+            <Link to="/orders" className={link}>My orders</Link>
             <Link to="/account/addresses" className={link}>My addresses</Link>
             <Link to="/sell" className={link}>{user.seller ? 'My shop application' : 'Become a seller'}</Link>
             <button type="button" className={`${link} w-full text-left`} onClick={doLogout}>Log out</button>
@@ -227,6 +230,7 @@ export default function Navbar() {
             </NavLink>
           )}
           <ThemeToggle />
+          {user && <NotificationBell />}
           <CartLink />
           <div className="hidden md:block">
             {user ? <AccountMenu user={user} /> : status === 'ready' && (

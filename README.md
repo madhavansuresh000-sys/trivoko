@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 3 - Shop frontend** (October 2026): browse, search and filter 120 sample products from 8 shops, pick a size or colour, and fill ONE cart from many sellers - the cart is grouped into one package per seller and is kept when a guest logs in. Works on phones and in dark mode. Payment comes in Phase 4. Built in 13 phases; see `00_Project_Documents/TriVoKo_Phase_Plan_*.pdf`.
+> **Status: Phase 4 - Checkout & payments** (October 2026): pay ONCE for a cart from many sellers; the order is split into one package per seller, stock is held safely while you pay (10 minutes), coupons are shared fairly across items, and the customer and each seller get an email. Stripe Checkout (test mode) or a built-in test payment page. PDF invoices.
 
 ## What it will do
 
@@ -77,6 +77,34 @@ Phase 10) and `GET /api/products/brands?category=phones` (brands with counts for
 | `/login`, `/register` | A guest's cart is merged into the saved cart after login |
 | `/sell`, `/account/addresses` | Apply to become a seller; save up to 5 delivery addresses |
 
+### Checkout & payments (Phase 4)
+
+```
+ Cart -> /checkout (preview: packages, coupon, delivery) -> Pay
+   -> server rechecks prices, holds stock (one atomic UPDATE per item), creates order + packages
+   -> Stripe page (or the test page) -> paid: order PAID, packages PLACED, emails, invoice
+   -> not paid in 10 minutes: EXPIRED, stock back (a late payment re-takes it or is refunded)
+```
+
+| URL | Who | What it does |
+|---|---|---|
+| `POST /api/checkout/preview` `{addressId?, couponCode?}` | logged in | Packages, coupon result, delivery and total - nothing saved |
+| `POST /api/orders` `{addressId, couponCode?, expectedTotal}` | logged in | Places the order; 409 if prices changed or an item ran out; one unpaid order at a time |
+| `GET /api/orders`, `GET /api/orders/{number}`, `GET /api/orders/{number}/invoice.pdf` | owner | My orders, one order, the PDF invoice (paid orders) |
+| `POST /api/payments/stripe/webhook` | Stripe (signature) | Marks the order paid; a duplicate message changes nothing |
+| `POST /api/payments/{session}/verify` | owner | Back from Stripe: check now (the webhook may be late) |
+| `GET/POST /api/payments/fake/{session}[/complete]` | owner | The built-in test payment page (no Stripe key) |
+| `GET /api/coupons/{code}`, `GET/POST /api/admin/coupons` | logged in / admin | Coupons: `WELCOME10` (10% up to Rs 500 from Rs 499), `FLAT100` (Rs 100 off from Rs 999) |
+| `GET /api/notifications`, `POST /api/notifications/read-all` | logged in | The bell |
+
+Money rules: the coupon is shared across items by price (the last item takes the rounding remainder), stored
+per item for exact refunds later; delivery is per package - free from Rs 499 (before the coupon), else Rs 40.
+Tested by `OrderSplitterTest`, and `StockConcurrencyTest` (100 customers, last 10 units -> exactly 10 orders).
+
+**Real Stripe (test mode):** put `STRIPE_SECRET_KEY` (sk_test_...) in `.env`, run
+`stripe listen --forward-to localhost:8080/api/payments/stripe/webhook`, copy the `whsec_...` it prints into
+`STRIPE_WEBHOOK_SECRET`, restart the backend, and pay with card `4242 4242 4242 4242` (any future date, any CVC).
+
 ### Cart API (Phase 3)
 
 Prices are never stored in the browser or the cart table - the server prices the cart from the catalogue every
@@ -136,7 +164,7 @@ Postman: `npx newman run postman/TriVoKo.postman_collection.json --env-var demoP
 
 ## To-do carried over from EventHub
 
-- Real Stripe test in test mode (Phase 4): `sk_test` key in `.env`, pay with card 4242 4242 4242 4242, receive a real signed webhook with the Stripe CLI.
+- Real Stripe test in test mode: the code is ready (Phase 4); waiting for a Stripe test account - see "Real Stripe" above.
 
 ---
 

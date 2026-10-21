@@ -110,6 +110,51 @@ public class ProductService {
 	}
 
 	/**
+	 * Checkout (Phase 4): hold the stock of every line, or none. Lines are taken in variant-id order, so two
+	 * checkouts with the same items always lock rows in the same order (no deadlock). The first line that cannot
+	 * be taken throws, and the caller's transaction rolls back every hold made before it.
+	 */
+	@Transactional
+	public void holdStock(Map<Long, Integer> quantities) {
+		for (Long variantId : new java.util.TreeSet<>(quantities.keySet())) {
+			int qty = quantities.get(variantId);
+			if (variants.take(variantId, qty) == 0) {
+				CartVariant v = cartVariants(List.of(variantId)).get(variantId);
+				Integer left = variants.currentStock(variantId);
+				String what = v == null ? "An item" : v.productName() + " (" + v.variantLabel() + ")";
+				throw new BusinessRuleException(left == null || left <= 0
+						? "Sorry, " + what + " is sold out."
+						: "Sorry, " + what + " has only " + left + " left.");
+			}
+		}
+	}
+
+	/**
+	 * Like holdStock, but answers true/false instead of throwing, and gives back what it already took when a
+	 * later line fails. For a LATE payment: "is all the stock still there? then take it; if not, refund" - an
+	 * exception here would mark the caller's transaction rollback-only and the refund could not be saved.
+	 */
+	@Transactional
+	public boolean tryHoldStock(Map<Long, Integer> quantities) {
+		Map<Long, Integer> taken = new java.util.LinkedHashMap<>();
+		for (Long variantId : new java.util.TreeSet<>(quantities.keySet())) {
+			int qty = quantities.get(variantId);
+			if (variants.take(variantId, qty) == 0) {
+				taken.forEach(variants::giveBack);
+				return false;
+			}
+			taken.put(variantId, qty);
+		}
+		return true;
+	}
+
+	/** Puts held stock back (an unpaid order expired, or a payment was refunded). */
+	@Transactional
+	public void releaseStock(Map<Long, Integer> quantities) {
+		quantities.forEach(variants::giveBack);
+	}
+
+	/**
 	 * The brand checkboxes of the filter: brands of the visible products, with how many each has.
 	 * No category = every brand in the shop. An unknown category simply has no brands (empty list).
 	 */
