@@ -91,6 +91,8 @@ final class CheckoutTestSupport {
 
 	/** Puts the database back as the seed left it. */
 	void clean() {
+		jdbc.update("DELETE FROM return_events"); // Phase 8: returns point at order lines, so they go first
+		jdbc.update("DELETE FROM return_requests");
 		jdbc.update("DELETE FROM coupon_redemptions");
 		jdbc.update("DELETE FROM payments");
 		jdbc.update("DELETE FROM order_items");

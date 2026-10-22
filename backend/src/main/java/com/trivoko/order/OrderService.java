@@ -23,6 +23,7 @@ import com.trivoko.flashsale.FlashClaimService;
 import com.trivoko.order.dto.OrderViews;
 import com.trivoko.order.dto.OrderViews.OrderDetail;
 import com.trivoko.order.dto.OrderViews.OrderSummary;
+import com.trivoko.order.dto.OrderViews.ReturnableLine;
 import com.trivoko.payment.Payment;
 import com.trivoko.payment.PaymentService;
 
@@ -58,6 +59,8 @@ public class OrderService {
 	private final OrderNotifications notifications;
 
 	private final FlashClaimService flashClaims;
+
+	private final OrderPackageRepository packages;
 
 	/** What happened to a payment message - for logs and tests. */
 	public enum PaidResult {
@@ -151,6 +154,19 @@ public class OrderService {
 	Order owned(Long userId, String number) {
 		return orders.findByNumber(number).filter(o -> o.getUserId().equals(userId))
 			.orElseThrow(() -> new ResourceNotFoundException("Order", number));
+	}
+
+	/**
+	 * Phase 8 returns: one line of MY order (someone else's line is "not found", 404 - never confirm it exists).
+	 * Read-only: the returns module decides the rules (delivered, 7 days, once).
+	 */
+	public ReturnableLine returnableLine(Long userId, Long orderItemId) {
+		OrderPackage p = packages.findByItemId(orderItemId).filter(x -> x.getOrder().getUserId().equals(userId))
+			.orElseThrow(() -> new ResourceNotFoundException("Order item", orderItemId));
+		OrderItem i = p.getItems().stream().filter(x -> x.getId().equals(orderItemId)).findFirst().orElseThrow();
+		return new ReturnableLine(i.getId(), p.getId(), p.getOrder().getId(), p.getOrder().getNumber(), p.getSellerId(),
+				p.getSellerName(), i.getVariantId(), i.getProductName(), i.getVariantLabel(), i.getQuantity(),
+				i.getFlashItemId() != null, p.getStatus(), p.getDeliveredAt(), i.getLineTotal().subtract(i.getDiscountShare()));
 	}
 
 	/** The fake test page and "verify": the session must belong to one of MY orders. */
