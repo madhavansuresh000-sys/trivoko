@@ -108,6 +108,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				"Someone else is changing this at the same moment. Please reload and try again.");
 	}
 
+	/** Too many tries (flash-sale claim): tell the browser how long to wait. */
+	@ExceptionHandler(TooManyRequestsException.class)
+	ResponseEntity<ProblemDetail> handleTooMany(TooManyRequestsException ex) {
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+			.header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+			.body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+	}
+
 	/** Login failed. Same message for "no such email" and "wrong password" (do not reveal which emails exist). */
 	@ExceptionHandler(BadCredentialsException.class)
 	ProblemDetail handleBadCredentials(BadCredentialsException ex) {

@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProductPage from './pages/ProductPage'
 import ProductsPage from './pages/ProductsPage'
+import FlashSalePage from './pages/FlashSalePage'
 import RegisterPage from './pages/RegisterPage'
 import ShopPage from './pages/ShopPage'
 import { loadSession } from './store/authSlice'
@@ -40,6 +41,8 @@ const AdminOrdersPage = lazy(() => import('./pages/admin/AdminOrdersPage'))
 const AdminCouponsPage = lazy(() => import('./pages/admin/AdminCouponsPage'))
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'))
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'))
+const AdminFlashSalesPage = lazy(() => import('./pages/admin/AdminFlashSalesPage'))
+const SellerFlashPage = lazy(() => import('./pages/seller/SellerFlashPage'))
 
 export default function App() {
   const dispatch = useDispatch()
@@ -57,6 +60,7 @@ export default function App() {
         <Route path="products/:slug" element={<ProductPage />} />
         <Route path="shops/:slug" element={<ShopPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="flash" element={<FlashSalePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         {/* logged-in pages: a visitor is sent to /login?next=... and comes back here */}
@@ -78,6 +82,7 @@ export default function App() {
             <Route path="products/:id" element={<ProductEditorPage />} />
             <Route path="earnings" element={<EarningsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="flash" element={<SellerFlashPage />} />
           </Route>
           {/* the admin panel (Phase 6); AdminLayout shows "not for you" to everyone who is not ADMIN */}
           <Route path="admin" element={<AdminLayout />}>
@@ -88,6 +93,7 @@ export default function App() {
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="coupons" element={<AdminCouponsPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="flash" element={<AdminFlashSalesPage />} />
             <Route path="activity" element={<AdminActivityPage />} />
           </Route>
         </Route>

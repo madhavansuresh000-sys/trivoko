@@ -19,6 +19,7 @@ import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.coupon.CouponService;
+import com.trivoko.flashsale.FlashClaimService;
 import com.trivoko.order.dto.OrderViews;
 import com.trivoko.order.dto.OrderViews.OrderDetail;
 import com.trivoko.order.dto.OrderViews.OrderSummary;
@@ -56,6 +57,8 @@ public class OrderService {
 
 	private final OrderNotifications notifications;
 
+	private final FlashClaimService flashClaims;
+
 	/** What happened to a payment message - for logs and tests. */
 	public enum PaidResult {
 		PAID, ALREADY_DONE, PAID_LATE, REFUNDED
@@ -83,7 +86,8 @@ public class OrderService {
 			}
 			case EXPIRED -> {
 				// paid after the 10 minutes: the stock went back on the shelf - is it all still there?
-				if (!productService.tryHoldStock(quantities(order))) {
+				// a flash unit went back to the sale when the hold ran out, so a late payment for it is refunded
+				if (hasFlash(order) || !productService.tryHoldStock(quantities(order))) {
 					log.info("Order {} paid late and the stock is gone: refunding", order.getNumber());
 					paymentService.refund(sessionId);
 					return PaidResult.REFUNDED;
@@ -100,6 +104,7 @@ public class OrderService {
 		order.setPaidAt(LocalDateTime.now());
 		order.getPackages().forEach(p -> p.moveTo(PackageStatus.PLACED, PackageEvent.Actor.SYSTEM, "Payment received"));
 		paymentService.markPaid(sessionId);
+		flashClaims.orderPaid(order.getId());
 		if (order.getCouponCode() != null) {
 			couponService.redeem(order.getCouponCode(), order.getUserId(), order.getId());
 		}
@@ -127,6 +132,7 @@ public class OrderService {
 		order.setStatus(OrderStatus.EXPIRED);
 		order.getPackages().forEach(p -> p.moveTo(PackageStatus.EXPIRED, PackageEvent.Actor.SYSTEM, "Not paid within 10 minutes"));
 		productService.releaseStock(quantities(order));
+		flashClaims.orderEnded(order.getId()); // flash units: back to HELD (still inside their 10 minutes) or given back
 		paymentService.expireOpenPages(order.getId());
 		log.info("Order {} EXPIRED (not paid in time), stock released", order.getNumber());
 	}
@@ -173,10 +179,16 @@ public class OrderService {
 		return orders.findById(orderId).map(Order::getNumber).orElseThrow();
 	}
 
+	/** Normal-stock quantities of the order: flash lines are left out (their units live in the sale, not on the shelf). */
 	private static Map<Long, Integer> quantities(Order order) {
 		Map<Long, Integer> q = new LinkedHashMap<>();
-		order.getPackages().forEach(p -> p.getItems().forEach(i -> q.merge(i.getVariantId(), i.getQuantity(), Integer::sum)));
+		order.getPackages().forEach(p -> p.getItems().stream().filter(i -> i.getFlashItemId() == null)
+			.forEach(i -> q.merge(i.getVariantId(), i.getQuantity(), Integer::sum)));
 		return q;
+	}
+
+	private static boolean hasFlash(Order order) {
+		return order.getPackages().stream().flatMap(p -> p.getItems().stream()).anyMatch(i -> i.getFlashItemId() != null);
 	}
 
 }

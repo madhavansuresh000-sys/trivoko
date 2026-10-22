@@ -57,6 +57,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
 				// a guest's cart lives in the browser; the server only prices it (nothing is saved)
 				.requestMatchers(HttpMethod.POST, "/api/cart/preview").permitAll()
+				// the flash-sale pages can be looked at without logging in; claiming needs a login
+				.requestMatchers(HttpMethod.GET, "/api/flash-sales/current", "/api/flash-sales/{id:\\d+}").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/payments/stripe/webhook").permitAll()
 				// any logged-in customer may apply for a shop and see their application
 				.requestMatchers("/api/seller/apply", "/api/seller/application").authenticated()

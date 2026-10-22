@@ -16,6 +16,7 @@ const LINKS = [
   { to: '/seller/products', label: 'Products' },
   { to: '/seller/earnings', label: 'Earnings' },
   { to: '/seller/analytics', label: 'Analytics' },
+  { to: '/seller/flash', label: 'Flash sale' },
 ]
 
 const linkClass = ({ isActive }) =>

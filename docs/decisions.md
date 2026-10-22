@@ -141,3 +141,23 @@ back only those rows. A "sale" is a package that is not cancelled or expired, th
 
 **Likes helper.** Search boxes go through `Likes.contains(text)`, which escapes `%` and `_` so typing `100%` searches
 for that text and cannot turn into a wildcard.
+
+## D8 - Flash sale: one atomic UPDATE in MySQL; Redis not added yet (Phase 7, 22 Oct 2026)
+
+**The claim.** `UPDATE ... SET sold = sold + 1 WHERE id = ? AND sold < quantity AND <sale is live>` is a check and a
+change in one locked step. The wrong way - read `sold`, compare in Java, write `sold + 1` - lets two requests read 99
+at the same moment and both write 100: an oversell. Three walls stop a mistake: the WHERE clause, `UNIQUE (item, user)`
+(one per person) and `CHECK (sold <= quantity)` (the database itself refuses).
+
+**Fast "no".** Once sold out, the other thousands are answered by a plain, non-locking read of `quantity - sold`, so
+they do not queue on the locked row. It can be out of date for a moment after a give-back; the UPDATE is still the only
+thing that hands out a unit.
+
+**Measured (k6, 15 Oct 2026, one laptop, app + MySQL + k6 all in Docker):** 100 winners, 0 oversell, 0 errors in both
+shapes. p95 = 1,082 ms when all 5,000 press at the same instant (median 681 ms), 517 ms at 1,000 a second (median 2.4 ms).
+
+**Redis?** The plan said: if p95 is above 500 ms, try Redis `DECR` and measure again. The p95 is above, but the cost
+is everyone waiting in line for one hot row on a single laptop that also runs k6 and MySQL - the answer was always
+right. **Decision: keep MySQL only for now** (one fewer service to host, no second copy of the stock that could drift).
+**Still to do together:** run the `ceiling` shape (5,000 at `/api/health`) to see how much of the 1 s is the laptop
+itself; only if the claim is clearly slower than that ceiling, build the Redis `DECR` version and record both graphs.

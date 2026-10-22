@@ -1,0 +1,38 @@
+﻿1/7 fresh database trivoko_load
+2/7 build the app and its Docker image
+3/7 start the app in Docker on port 8090 (Flyway builds the tables)
+4/7 seed 5,000 customers + one deal of 100 units
+5/7 k6: 5,000 customers claim deal #1 (spread)
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: flash-claim.js
+        output: json (/work/results/flash-claim-spread-raw.json)
+
+     scenarios: (100.00%) 1 scenario, 5000 max VUs, 35s max duration (incl. graceful stop):
+              * everyone: 1000.00 iterations/s for 5s (maxVUs: 1500-5000, gracefulStop: 30s)
+
+
+Run        [ 100% ] setup()
+everyone   [   0% ]
+
+Run        [ 100% ] setup()
+everyone   [   0% ]
+
+running (02.9s), 0004/1500 VUs, 690 complete and 0 interrupted iterations
+everyone   [  14% ] 0004/1500 VUs  0.7s/5s  1000.00 iters/s
+
+running (03.9s), 0003/1500 VUs, 1691 complete and 0 interrupted iterations
+everyone   [  34% ] 0003/1500 VUs  1.7s/5s  1000.00 iters/s
+
+running (04.9s), 0004/1500 VUs, 2691 complete and 0 interrupted iterations
+everyone   [  54% ] 0004/1500 VUs  2.7s/5s  1000.00 iters/s
+
+running (05.9s), 0004/1500 VUs, 3690 complete and 0 interrupted iterations
+everyone   [  74% ] 0004/1500 VUs  3.7s/5s  1000.00 iters/s
