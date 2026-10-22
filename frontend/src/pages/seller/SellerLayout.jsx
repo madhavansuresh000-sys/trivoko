@@ -13,6 +13,7 @@ import { isActiveSeller, selectUser } from '../../store/authSlice'
 const LINKS = [
   { to: '/seller', label: 'Dashboard', end: true },
   { to: '/seller/orders', label: 'Orders to ship' },
+  { to: '/seller/returns', label: 'Returns' },
   { to: '/seller/products', label: 'Products' },
   { to: '/seller/earnings', label: 'Earnings' },
   { to: '/seller/analytics', label: 'Analytics' },

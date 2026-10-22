@@ -51,6 +51,23 @@ public class ReturnRequest {
 	@Column(name = "seller_id", nullable = false)
 	private Long sellerId;
 
+	// ---- a copy of the bill line (V11), so lists need no extra lookups ----
+
+	@Column(name = "order_number", nullable = false, length = 12)
+	private String orderNumber = "";
+
+	@Column(name = "product_name", nullable = false, length = 200)
+	private String productName = "";
+
+	@Column(name = "variant_label", nullable = false, length = 100)
+	private String variantLabel = "";
+
+	@Column(nullable = false)
+	private int quantity = 1;
+
+	@Column(name = "seller_name", nullable = false, length = 120)
+	private String sellerName = "";
+
 	/** Changed ONLY by ReturnService.moveTo (which asks ReturnStatus.allowedNext first). */
 	@Setter
 	@Enumerated(EnumType.STRING)
@@ -104,6 +121,15 @@ public class ReturnRequest {
 		this.note = note;
 		this.photoUrl = photoUrl;
 		this.refundAmount = refundAmount;
+	}
+
+	/** Copies what the customer sees on the bill (order number, product, variant, quantity, shop). */
+	public void describe(String orderNumber, String productName, String variantLabel, int quantity, String sellerName) {
+		this.orderNumber = orderNumber;
+		this.productName = productName;
+		this.variantLabel = variantLabel;
+		this.quantity = quantity;
+		this.sellerName = sellerName;
 	}
 
 	/** Adds one line to the timeline (ReturnService.moveTo calls this right after changing the status). */

@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 7 - Flash sale** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded). The admin now has a panel of its own: approve or block shops (with a reason the owner sees), review products, block users, edit or end coupons, read sales reports and the activity log. A flash sale now lets thousands press "Claim" at once: one atomic SQL update hands out exactly the right number of units (k6: 5,000 users, 100 units, 100 winners, 0 oversell, 0 errors).
+> **Status: Phase 8 - Returns & refunds** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units under a 5,000-user k6 load (Phase 7). Now a customer can return ONE delivered item: the seller (or, after an escalation, the admin) decides, and when the courier collects it the customer gets back exactly what they paid for that line through a Stripe partial refund - never twice - while stock and the seller's ledger stay in step.
 
 ## What it will do
 
@@ -117,6 +117,40 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 (approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
+
+### Returns & refunds (Phase 8)
+
+You return one shirt from a bill of three: the shop checks it, puts it back on the shelf and gives back only that
+shirt's money - minus its part of the coupon you used.
+
+```
+ REQUESTED --seller / 2 days no answer--> APPROVED --seller "picked up"--> PICKED_UP --refund ok--> REFUNDED
+     |                                                                         \--refund fails--> REFUND_FAILED --admin retry--> REFUNDED
+     +--seller "no" + reason--> REJECTED --customer, once, within 3 days--> ESCALATED --admin--> APPROVED | CLOSED
+     +--customer cancels--> CANCELLED
+```
+
+| URL | Who | What it does |
+|---|---|---|
+| `POST /api/me/returns` `{orderItemId, reason, note}` | customer | Ask: own line only, package DELIVERED, within 7 days, once per line (UNIQUE key) |
+| `GET /api/me/returns`, `POST .../{id}/cancel`, `POST .../{id}/escalate {note}` | customer | My returns with their timeline; cancel before the seller answers; ask TriVoKo to review a "no" once |
+| `GET /api/seller/returns?status=`, `POST .../{id}/approve` - `reject {reason}` - `picked-up` | seller | My shop's returns; "picked up" refunds at once |
+| `GET /api/admin/returns?status=ESCALATED\|REFUND_FAILED`, `POST .../{id}/approve` - `close {reason}` - `retry-refund` | admin | The final word on disputes; retry a failed refund |
+
+How the money stays right:
+
+- **One door for every move**: `ReturnStatus.allowedNext()` + `ReturnService.moveTo()` (illegal move = 409), and
+  `@Version` + `saveAndFlush` stop a second click before any money moves (10 clicks at once = 1 refund, `ReturnRefundTest`).
+- **Exact amount, fixed when asked**: `refund = line total - the line's coupon share` (both stored on the bill since
+  Phase 4). Delivery is not refunded.
+- **Stripe partial refund** with the idempotency key `refund-return-<id>`; `PaymentService` never gives back more
+  than was paid. A failure rolls the refund back and shows REFUND_FAILED; the admin retries with the same key.
+- **After the refund**, in the same transaction: the item goes back in stock, the seller's ledger gets a line of
+  **-90%** of the refund (they only ever got 90%), and the customer gets a bell + email. V10 changed the ledger key
+  so two items of one package give two refund lines.
+- A seller who does not answer in **2 days** has said yes (`ReturnJob`, every 10 minutes).
+- Pages: "Return" on a delivered order line, `/account/returns`, `/seller/returns`, `/admin/returns`.
+  Migrations: `V10__returns.sql`, `V11__return_snapshot.sql`.
 
 ### Flash sale (Phase 7)
 

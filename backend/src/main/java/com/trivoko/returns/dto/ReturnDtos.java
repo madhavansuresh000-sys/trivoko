@@ -31,12 +31,14 @@ public final class ReturnDtos {
 	public record EventView(ReturnStatus status, ReturnEvent.Actor actor, String note, LocalDateTime at) {
 	}
 
-	public record ReturnView(Long id, Long orderItemId, Long orderId, ReturnStatus status, ReturnReason reason,
+	public record ReturnView(Long id, Long orderItemId, Long orderId, String orderNumber, String productName,
+			String variantLabel, int quantity, String sellerName, ReturnStatus status, ReturnReason reason,
 			String note, String photoUrl, BigDecimal refundAmount, String rejectReason, LocalDateTime createdAt,
 			List<EventView> events) {
 
 		public static ReturnView of(ReturnRequest r) {
-			return new ReturnView(r.getId(), r.getOrderItemId(), r.getOrderId(), r.getStatus(), r.getReason(),
+			return new ReturnView(r.getId(), r.getOrderItemId(), r.getOrderId(), r.getOrderNumber(), r.getProductName(),
+					r.getVariantLabel(), r.getQuantity(), r.getSellerName(), r.getStatus(), r.getReason(),
 					r.getNote(), r.getPhotoUrl(), r.getRefundAmount(), r.getRejectReason(), r.getCreatedAt(),
 					r.getEvents().stream().map(e -> new EventView(e.getStatus(), e.getActor(), e.getNote(),
 							e.getCreatedAt())).toList());
