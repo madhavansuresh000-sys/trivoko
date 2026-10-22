@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 6 - Admin panel** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded). The admin now has a panel of its own: approve or block shops (with a reason the owner sees), review products, block users, edit or end coupons, read sales reports and the activity log.
+> **Status: Phase 7 - Flash sale** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded). The admin now has a panel of its own: approve or block shops (with a reason the owner sees), review products, block users, edit or end coupons, read sales reports and the activity log. A flash sale now lets thousands press "Claim" at once: one atomic SQL update hands out exactly the right number of units (k6: 5,000 users, 100 units, 100 winners, 0 oversell, 0 errors).
 
 ## What it will do
 
@@ -117,6 +117,42 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 (approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
+
+### Flash sale (Phase 7)
+
+100 TVs, 5,000 people at the door: the guard hands out exactly 100 tokens, one per person. Token 101 does not exist.
+
+| URL | Who | What it does |
+|---|---|---|
+| `GET /api/flash-sales/current`, `GET /api/flash-sales/{id}` | anyone | The live (or next) sale, its deals and "N left"; the server's clock is sent so the countdown cannot be cheated |
+| `POST /api/flash-sales/items/{itemId}/claim` | customer | Claim one unit: held at the sale price for 10 minutes, then checkout |
+| `GET /api/me/flash-claims` | customer | My held / ordered / paid deals |
+| `GET/POST /api/admin/flash-sales` | admin | Schedule a sale (start, end) |
+| `GET /api/seller/flash-sales`, `GET .../offers`, `POST .../{saleId}/offers`, `DELETE .../offers/{itemId}` | seller | Offer a variant with a sale price and quantity (taken out of normal stock at once) |
+
+How it stays correct:
+
+- **The claim is one statement**: `UPDATE flash_sale_items SET sold = sold + 1 WHERE id = ? AND sold < quantity AND
+  the sale is live`. MySQL locks the row, checks and adds in one step, so two people can never both get the last unit.
+  1 row changed = you won, 0 = sold out / not live.
+- **One per person**: `UNIQUE (item_id, user_id)` on `flash_sale_claims`; a second claim fails and its +1 is rolled back.
+- **The database refuses an oversell** even if the code were wrong: `CHECK (sold <= quantity)`.
+- **Give-back**: a claim not paid in 10 minutes (job every 30 s) returns its unit (`sold = sold - 1`, never below 0).
+- **Sale end**: unsold units go back to normal stock once (`settled`).
+- **Rate limit**: 5 claims per user and 200 per IP every 10 s, then `429` with `Retry-After`.
+- Pages: home banner with a countdown, `/flash-sale` with a live "N left" counter and an instant "Sold out",
+  `/seller/flash` (offers) and `/admin/flash-sales`.
+
+**Load test** (k6 in Docker, app in Docker, one laptop; `powershell -File load-tests\run-flash-load.ps1 [-Shape burst|spread]`,
+results in `load-tests/results`):
+
+| Shape | Requests | Winners | Sold out | Errors | Oversell | p95 | median |
+|---|---|---|---|---|---|---|---|
+| burst - 5,000 users press at the same instant | 5,600 (~1,480/s) | **100** | 4,900 | **0** | **0** | 1,082 ms | 681 ms |
+| spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | 517 ms | 2.4 ms |
+
+The database agreed after both runs: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven; speed in
+the burst is above the 500 ms target (see decision D8 in `docs/decisions.md`).
 
 ### Checkout & payments (Phase 4)
 

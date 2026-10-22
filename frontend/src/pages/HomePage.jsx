@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { fetchProducts } from '../api/catalog'
 import { ProductGrid } from '../components/catalog/ProductCard'
+import FlashBanner from '../components/flash/FlashBanner'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { BoltIcon, ChevronRightIcon } from '../components/ui/icons'
@@ -52,7 +53,7 @@ function FlashSaleBanner() {
         One cart. Many sellers. <span className="text-accent-300">One payment.</span>
       </h1>
       <p className="mt-3 max-w-lg text-brand-100">
-        Shop from 8 Indian sellers in one go. Flash sales with a live countdown are coming soon.
+        Shop from 8 Indian sellers in one go. Flash sales with a live countdown appear right here.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button variant="deal" size="lg" to="/products">Start shopping</Button>
@@ -90,7 +91,7 @@ export default function HomePage() {
   return (
     <div className="space-y-10">
       <CategoryChips tree={tree} />
-      <FlashSaleBanner />
+      <FlashBanner fallback={<FlashSaleBanner />} />
 
       {error ? (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-300">

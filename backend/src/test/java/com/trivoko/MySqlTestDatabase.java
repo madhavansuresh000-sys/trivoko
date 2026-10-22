@@ -36,6 +36,10 @@ public class MySqlTestDatabase implements ApplicationContextInitializer<Configur
 				"spring.datasource.url", MYSQL.getJdbcUrl(),
 				"spring.datasource.username", MYSQL.getUsername(),
 				"spring.datasource.password", MYSQL.getPassword(),
+				// Phase 7 gave the app 40 connections for the load test. Spring keeps several test contexts alive at
+				// once and each has its own pool, so 40 each would pass MySQL's limit of 151 ("Too many connections").
+				// 10 per context is plenty for the tests (the 1,000-claim race just waits a moment for a connection).
+				"spring.datasource.hikari.maximum-pool-size", "10",
 				// the demo accounts' password in every test (support.Logins.PASSWORD), whatever .env says
 				"app.demo.password", "Test-Demo-Pass-1",
 				// Phase 4: tests call the expiry job themselves, and always use the fake payment page

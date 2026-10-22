@@ -18,6 +18,7 @@ const LINKS = [
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/coupons', label: 'Coupons' },
   { to: '/admin/reports', label: 'Reports' },
+  { to: '/admin/flash', label: 'Flash sales' },
   { to: '/admin/activity', label: 'Activity log' },
 ]
 

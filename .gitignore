@@ -30,3 +30,6 @@ Thumbs.db
 
 # ---- Claude work notes (plan ledgers) ----
 .superpowers/
+
+# ---- k6 raw output (tens of MB; the summaries are kept) ----
+load-tests/results/*-raw.json

@@ -73,6 +73,14 @@ public class OrderItem {
 		this.discountShare = discountShare;
 	}
 
+	/** Bought at a flash-sale price: which deal (FlashSaleItem) it came from. */
+	@Column(name = "flash_item_id")
+	private Long flashItemId;
+
+	void markFlash(Long flashItemId) {
+		this.flashItemId = flashItemId;
+	}
+
 	void setOrderPackage(OrderPackage orderPackage) {
 		this.orderPackage = orderPackage;
 	}

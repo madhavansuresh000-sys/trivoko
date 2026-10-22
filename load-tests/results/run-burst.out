@@ -1,0 +1,60 @@
+﻿1/7 fresh database trivoko_load
+2/7 build the app and its Docker image
+3/7 start the app in Docker on port 8090 (Flyway builds the tables)
+4/7 seed 5,000 customers + one deal of 100 units
+5/7 k6: 5,000 customers claim deal #1 (burst)
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: flash-claim.js
+        output: json (/work/results/flash-claim-burst-raw.json)
+
+     scenarios: (100.00%) 1 scenario, 5000 max VUs, 3m30s max duration (incl. graceful stop):
+              * everyone: 1 iterations for each of 5000 VUs (maxDuration: 3m0s, gracefulStop: 30s)
+
+
+Run        [ 100% ] setup()
+everyone   [   0% ]
+
+Run        [ 100% ] setup()
+everyone   [   0% ]
+
+running (0m02.8s), 4920/5000 VUs, 80 complete and 0 interrupted iterations
+everyone   [   2% ] 5000 VUs  0m00.5s/3m0s  0080/5000 iters, 1 per VU
+
+running (0m03.8s), 0080/5000 VUs, 4920 complete and 0 interrupted iterations
+everyone   [  98% ] 5000 VUs  0m01.5s/3m0s  4920/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+
+running (0m03.8s), 0000/5000 VUs, 5000 complete and 0 interrupted iterations
+everyone ✓ [ 100% ] 5000 VUs  0m01.5s/3m0s  5000/5000 iters, 1 per VU
+powershell : time="2026-10-15T16:34:42Z" level=error msg="thresholds on metrics 'http_req_duration' have been crossed"
+At line:1 char:502
++ ... ceiling') { powershell -NoProfile -ExecutionPolicy Bypass -File load- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2026-10-1...e been crossed":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+6/7 what the database says
+    sold=100  claim rows=100  different people=100   (expected 100 / 100 / 100)
+7/7 stop the app and remove the throw-away database

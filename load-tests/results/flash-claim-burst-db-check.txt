@@ -1,0 +1,1 @@
+sold=100 claim_rows=100 different_people=100 k6_exit=99

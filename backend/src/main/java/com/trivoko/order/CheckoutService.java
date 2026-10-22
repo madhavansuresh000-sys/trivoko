@@ -20,6 +20,8 @@ import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.Money;
 import com.trivoko.coupon.CouponService;
 import com.trivoko.coupon.CouponService.CouponQuote;
+import com.trivoko.flashsale.FlashClaimService;
+import com.trivoko.flashsale.FlashClaimService.CheckoutClaim;
 import com.trivoko.order.OrderSplitter.ItemPlan;
 import com.trivoko.order.OrderSplitter.PackagePlan;
 import com.trivoko.order.OrderSplitter.SplitLine;
@@ -69,11 +71,13 @@ public class CheckoutService {
 
 	private final OrderService orderService;
 
+	private final FlashClaimService flashClaims;
+
 	private final Duration holdTime;
 
 	CheckoutService(CartService cartService, ProductService productService, CouponService couponService,
 			AddressService addressService, UserService userService, PaymentService paymentService,
-			OrderRepository orders, OrderNumbers numbers, OrderService orderService,
+			OrderRepository orders, OrderNumbers numbers, OrderService orderService, FlashClaimService flashClaims,
 			@Value("${app.order.hold-time}") Duration holdTime) {
 		this.cartService = cartService;
 		this.productService = productService;
@@ -84,6 +88,7 @@ public class CheckoutService {
 		this.orders = orders;
 		this.numbers = numbers;
 		this.orderService = orderService;
+		this.flashClaims = flashClaims;
 		this.holdTime = holdTime;
 	}
 
@@ -132,7 +137,10 @@ public class CheckoutService {
 
 		// hold the stock of every line, or none (throws "only N left" and rolls everything back)
 		Map<Long, Integer> quantities = new LinkedHashMap<>();
-		split.packages().forEach(p -> p.items().forEach(i -> quantities.merge(i.line().variantId(), i.line().quantity(), Integer::sum)));
+		Map<Long, CheckoutClaim> flash = built.flash();
+		// a flash line's unit was already taken out of normal stock when the seller offered it
+		split.packages().forEach(p -> p.items().stream().filter(i -> !flash.containsKey(i.line().variantId()))
+			.forEach(i -> quantities.merge(i.line().variantId(), i.line().quantity(), Integer::sum)));
 		productService.holdStock(quantities);
 
 		Order order = new Order(numbers.next(), userId, split.itemsTotal(), split.discountTotal(), split.shippingTotal(),
@@ -143,14 +151,19 @@ public class CheckoutService {
 					p.shippingFee(), p.total());
 			for (ItemPlan i : p.items()) {
 				SplitLine l = i.line();
-				box.addItem(new OrderItem(l.variantId(), l.productSlug(), l.productName(), l.variantLabel(), l.unitPrice(),
-						l.mrp(), l.quantity(), i.lineTotal(), i.discountShare()));
+				OrderItem item = new OrderItem(l.variantId(), l.productSlug(), l.productName(), l.variantLabel(), l.unitPrice(),
+						l.mrp(), l.quantity(), i.lineTotal(), i.discountShare());
+				if (flash.containsKey(l.variantId())) {
+					item.markFlash(flash.get(l.variantId()).itemId());
+				}
+				box.addItem(item);
 			}
 			order.addPackage(box);
 		}
 		orders.save(order);
+		flashClaims.attachToOrder(flash.values().stream().map(CheckoutClaim::claimId).toList(), order.getId());
 
-		int count = quantities.values().stream().mapToInt(Integer::intValue).sum();
+		int count = split.packages().stream().flatMap(p -> p.items().stream()).mapToInt(i -> i.line().quantity()).sum();
 		CheckoutSession session = paymentService.start(order.getId(), order.getNumber(),
 				userService.getById(userId).getEmail(), order.getGrandTotal(),
 				"TriVoKo order " + order.getNumber() + " (" + count + (count == 1 ? " item" : " items") + ", "
@@ -160,8 +173,13 @@ public class CheckoutService {
 
 	/** The checkout picture: buyable lines split into packages; lines that cannot be bought are listed by name. */
 	private Built build(Long userId, String couponCode, AddressView address) {
-		List<CartPricing.Line> cart = cartService.checkoutLines(userId);
-		Map<Long, CartVariant> catalogue = productService.cartVariants(cart.stream().map(CartPricing.Line::variantId).toList());
+		// a claimed flash deal replaces a cart line of the same variant (1 unit, at the sale price)
+		Map<Long, CheckoutClaim> flash = new LinkedHashMap<>();
+		flashClaims.forCheckout(userId).forEach(c -> flash.put(c.variantId(), c));
+		List<CartPricing.Line> cart = cartService.checkoutLines(userId).stream().filter(l -> !flash.containsKey(l.variantId())).toList();
+		List<Long> wanted = new ArrayList<>(cart.stream().map(CartPricing.Line::variantId).toList());
+		wanted.addAll(flash.keySet());
+		Map<Long, CartVariant> catalogue = productService.cartVariants(wanted);
 
 		List<SplitLine> lines = new ArrayList<>();
 		List<String> unavailable = new ArrayList<>();
@@ -178,9 +196,19 @@ public class CheckoutService {
 			lines.add(new SplitLine(v.variantId(), v.sellerId(), v.sellerName(), v.productSlug(), v.productName(),
 					v.variantLabel(), v.price(), v.mrp(), quantity));
 		}
+		Map<Long, CheckoutClaim> usedFlash = new LinkedHashMap<>();
+		for (CheckoutClaim c : flash.values()) {
+			CartVariant v = catalogue.get(c.variantId());
+			if (v == null || !v.available()) {
+				continue; // the product went off sale: the unit is given back when the claim runs out
+			}
+			lines.add(new SplitLine(v.variantId(), v.sellerId(), v.sellerName(), v.productSlug(), v.productName(),
+					v.variantLabel(), c.salePrice(), v.mrp(), 1));
+			usedFlash.put(c.variantId(), c);
+		}
 		if (lines.isEmpty()) {
 			return new Built(new CheckoutPreview(address, List.of(), Money.ZERO, Money.ZERO, Money.ZERO, Money.ZERO,
-					null, unavailable), null);
+					null, unavailable), null, Map.of());
 		}
 
 		BigDecimal itemsTotal = lines.stream().map(l -> l.unitPrice().multiply(BigDecimal.valueOf(l.quantity())))
@@ -204,7 +232,7 @@ public class CheckoutService {
 						i.line().mrp(), i.line().quantity(), i.lineTotal(), i.discountShare())).toList(),
 				p.itemsTotal(), p.discount(), p.shippingFee(), p.total())).toList();
 		return new Built(new CheckoutPreview(address, packages, split.itemsTotal(), split.discountTotal(),
-				split.shippingTotal(), split.grandTotal(), coupon, unavailable), split);
+				split.shippingTotal(), split.grandTotal(), coupon, unavailable), split, usedFlash);
 	}
 
 	/** Is this checkout the same as the unpaid order: same cart lines and quantities, coupon and address? */
@@ -212,7 +240,11 @@ public class CheckoutService {
 		Map<Long, Integer> ordered = new LinkedHashMap<>();
 		order.getPackages().forEach(p -> p.getItems().forEach(i -> ordered.merge(i.getVariantId(), i.getQuantity(), Integer::sum)));
 		Map<Long, Integer> inCart = new LinkedHashMap<>();
-		cartService.checkoutLines(userId).forEach(l -> inCart.merge(l.variantId(), l.quantity(), Integer::sum));
+		Map<Long, CheckoutClaim> flash = new LinkedHashMap<>();
+		flashClaims.forCheckout(userId).forEach(c -> flash.put(c.variantId(), c));
+		cartService.checkoutLines(userId).stream().filter(l -> !flash.containsKey(l.variantId()))
+			.forEach(l -> inCart.merge(l.variantId(), l.quantity(), Integer::sum));
+		flash.keySet().forEach(v -> inCart.put(v, 1));
 		String code = couponCode == null || couponCode.isBlank() ? null : couponCode.trim().toUpperCase(java.util.Locale.ROOT);
 		return ordered.equals(inCart) && java.util.Objects.equals(code, order.getCouponCode())
 				&& order.shipTo().equals(shipTo(address));
@@ -223,7 +255,7 @@ public class CheckoutService {
 	}
 
 	/** The preview, plus the split behind it (null when nothing can be bought). */
-	private record Built(CheckoutPreview preview, SplitResult split) {
+	private record Built(CheckoutPreview preview, SplitResult split, Map<Long, CheckoutClaim> flash) {
 	}
 
 }
