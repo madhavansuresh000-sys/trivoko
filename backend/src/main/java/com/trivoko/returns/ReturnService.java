@@ -3,6 +3,7 @@ package com.trivoko.returns;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -10,13 +11,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.admin.AuditService;
 import com.trivoko.catalog.ImageUploadService;
+import com.trivoko.catalog.ProductService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
+import com.trivoko.common.Money;
 import com.trivoko.common.PageResponse;
+import com.trivoko.notify.NotificationKind;
+import com.trivoko.notify.NotificationService;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.order.OrderService;
 import com.trivoko.order.PackageStatus;
 import com.trivoko.order.dto.OrderViews.ReturnableLine;
+import com.trivoko.payment.PaymentService;
+import com.trivoko.seller.LedgerService;
 import com.trivoko.returns.dto.ReturnDtos.RequestReturn;
 import com.trivoko.returns.dto.ReturnDtos.ReturnView;
 
@@ -47,6 +54,14 @@ public class ReturnService {
 	private final ImageUploadService uploads;
 
 	private final AuditService audit;
+
+	private final PaymentService payments;
+
+	private final ProductService products;
+
+	private final LedgerService ledger;
+
+	private final NotificationService notifications;
 
 	/**
 	 * The ONLY way a return changes status.
@@ -189,6 +204,65 @@ public class ReturnService {
 
 	private ReturnRequest any(Long returnId) {
 		return returns.findById(returnId).orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
+	}
+
+	// ---------- steps 7-8: picked up -> refund -> stock back, ledger, bell ----------
+
+	/** The courier has the item (seller button). Its own small transaction: the refund comes next, separately. */
+	@Transactional
+	public void markPickedUp(Long sellerId, Long returnId) {
+		moveTo(ofSeller(sellerId, returnId), ReturnStatus.PICKED_UP, ReturnEvent.Actor.SELLER,
+				"Picked up by the courier");
+	}
+
+	/**
+	 * THE REFUND, all-or-nothing in one transaction:
+	 * <ol>
+	 * <li>status -> REFUNDED first: saveAndFlush + @Version stop a second click HERE, before any money moves;</li>
+	 * <li>Stripe partial refund of exactly refundAmount, idempotency key refund-return-&lt;id&gt; (a repeat is ignored by
+	 * Stripe, and PaymentService never gives back more than was paid);</li>
+	 * <li>the item goes back on the shelf, the seller's ledger gets -90%, the customer gets a bell + email.</li>
+	 * </ol>
+	 * If anything throws, everything here is rolled back and ReturnPickup records REFUND_FAILED (admin retries with
+	 * the same key, so the money still cannot go out twice).
+	 */
+	@Transactional
+	public ReturnView refund(Long returnId) {
+		ReturnRequest ret = any(returnId);
+		ReturnableLine line = orders.returnableLine(ret.getCustomerId(), ret.getOrderItemId());
+		String rupees = Money.round(ret.getRefundAmount()).toPlainString();
+		moveTo(ret, ReturnStatus.REFUNDED, ReturnEvent.Actor.SYSTEM, "Refund of Rs " + rupees + " started");
+		payments.refundPart(ret.getOrderId(), ret.getRefundAmount(), "refund-return-" + ret.getId());
+		products.releaseStock(Map.of(line.variantId(), line.quantity()));
+		ledger.recordRefund(ret.getSellerId(), ret.getPackageId(), ret.getId(), ret.getRefundAmount(), line.orderNumber());
+		notifications.create(ret.getCustomerId(), NotificationKind.RETURN_REFUNDED, "Refund of Rs " + rupees + " started",
+				"We have refunded Rs " + rupees + " for " + line.productName() + " (order " + line.orderNumber()
+						+ "). It reaches your card or bank in 5-7 working days.",
+				"/account/returns/" + ret.getId(), true);
+		return ReturnView.of(ret);
+	}
+
+	/** The refund call failed: note it on the timeline (status REFUND_FAILED) for the admin to retry. */
+	@Transactional
+	public ReturnView markRefundFailed(Long returnId, String why) {
+		ReturnRequest ret = any(returnId);
+		String note = "Refund failed - TriVoKo will retry" + (why == null ? "" : " (" + shorten(why) + ")");
+		if (ret.getStatus() == ReturnStatus.REFUND_FAILED) {
+			ret.addEvent(ReturnStatus.REFUND_FAILED, ReturnEvent.Actor.SYSTEM, note); // failed again: one more line
+			return ReturnView.of(returns.saveAndFlush(ret));
+		}
+		return ReturnView.of(moveTo(ret, ReturnStatus.REFUND_FAILED, ReturnEvent.Actor.SYSTEM, note));
+	}
+
+	/** Admin "Retry refund" is only for a failed one (a 409 otherwise, before any money call). */
+	public void checkRetryable(Long returnId) {
+		if (any(returnId).getStatus() != ReturnStatus.REFUND_FAILED) {
+			throw new BusinessRuleException("Only a failed refund can be retried.");
+		}
+	}
+
+	private static String shorten(String s) {
+		return s.length() <= 120 ? s : s.substring(0, 120);
 	}
 
 	// ---------- the customer's lists ----------

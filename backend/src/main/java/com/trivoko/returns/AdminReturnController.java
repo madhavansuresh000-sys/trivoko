@@ -32,6 +32,8 @@ public class AdminReturnController {
 
 	private final ReturnService returns;
 
+	private final ReturnPickup pickup;
+
 	public record ApproveRequest(@Size(max = 300) String note) {
 	}
 
@@ -52,6 +54,12 @@ public class AdminReturnController {
 	@Operation(summary = "Side with the customer: the return goes ahead")
 	public ReturnView approve(@PathVariable Long id, @Valid @RequestBody(required = false) ApproveRequest request) {
 		return returns.adminApprove(id, request == null ? null : request.note());
+	}
+
+	@PostMapping("/{id}/retry-refund")
+	@Operation(summary = "Try a failed refund again (same idempotency key: never paid twice)")
+	public ReturnView retryRefund(@PathVariable Long id) {
+		return pickup.retry(id);
 	}
 
 	@PostMapping("/{id}/close")
