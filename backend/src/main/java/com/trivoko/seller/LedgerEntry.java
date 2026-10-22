@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LedgerEntry {
 
-	/** SALE = +90% of a delivered package. REFUND (minus) arrives with returns in Phase 8. */
+	/** SALE = +90% of a delivered package. REFUND = minus 90% of a returned line's refund (Phase 8). */
 	public enum Kind {
 		SALE, REFUND
 	}
@@ -50,6 +50,10 @@ public class LedgerEntry {
 
 	@Column(length = 200)
 	private String note;
+
+	/** Phase 8: the return a REFUND line belongs to (NULL for SALE). Part of the "once" key - see V10. */
+	@Column(name = "return_id")
+	private Long returnId;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt = LocalDateTime.now();
