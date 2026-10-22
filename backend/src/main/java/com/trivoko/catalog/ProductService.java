@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.catalog.dto.BrandCount;
 import com.trivoko.catalog.dto.CartVariant;
+import com.trivoko.catalog.dto.ImageInput;
+import com.trivoko.catalog.dto.LowStockView;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.catalog.dto.SellerProductRequest;
@@ -51,9 +53,11 @@ public class ProductService {
 	private final AuditService audit;
 	private final EntityManager em;
 
+	private final ImageUploadService uploads;
+
 	ProductService(ProductRepository products, ProductVariantRepository variants,
 			PriceHistoryRepository priceHistory, CategoryService categoryService, CategoryRepository categories,
-			AuditService audit, EntityManager em) {
+			AuditService audit, EntityManager em, ImageUploadService uploads) {
 		this.products = products;
 		this.variants = variants;
 		this.priceHistory = priceHistory;
@@ -61,6 +65,7 @@ public class ProductService {
 		this.categories = categories;
 		this.audit = audit;
 		this.em = em;
+		this.uploads = uploads;
 	}
 
 	/** The shop listing: only what the public may see, with the customer's filters. */
@@ -152,6 +157,47 @@ public class ProductService {
 	@Transactional
 	public void releaseStock(Map<Long, Integer> quantities) {
 		quantities.forEach(variants::giveBack);
+	}
+
+	public static final int MAX_PHOTOS = 8;
+
+	/**
+	 * Replaces a product's photo list (the seller's editor sends the whole list in the new order; the first is
+	 * the main photo on cards). At most 8, and only photos from our own Cloudinary account.
+	 */
+	@Transactional
+	public List<ProductDetail.ImageView> replaceImages(Long productId, List<ImageInput> photos) {
+		if (photos.size() > MAX_PHOTOS) {
+			throw new BadRequestException("At most " + MAX_PHOTOS + " photos per product.");
+		}
+		for (ImageInput photo : photos) {
+			if (!uploads.isOurPhoto(photo.url())) {
+				throw new BadRequestException("Only a TriVoKo photo upload can be used: " + photo.url());
+			}
+		}
+		Product product = get(productId);
+		product.getImages().clear();
+		products.flush(); // delete the old rows before the new ones (same product, new order)
+		for (int i = 0; i < photos.size(); i++) {
+			ImageInput photo = photos.get(i);
+			String alt = photo.altText() == null || photo.altText().isBlank() ? product.getName() : photo.altText().trim();
+			product.addImage(new ProductImage(photo.url(), alt, i));
+		}
+		return product.getImages().stream().map(img -> new ProductDetail.ImageView(img.getUrl(), img.getAltText())).toList();
+	}
+
+	/** Seller dashboard: "running low" means fewer than 5 left (Phase 5 default). */
+	public static final int LOW_STOCK_BELOW = 5;
+
+	public List<LowStockView> lowStock(Long sellerId) {
+		return variants.lowStock(sellerId, LOW_STOCK_BELOW).stream()
+			.map(v -> new LowStockView(v.getProduct().getId(), v.getProduct().getName(), v.getId(), v.getLabel(), v.getStock()))
+			.toList();
+	}
+
+	/** Seller dashboard: my products waiting for the admin. */
+	public long countWaitingForApproval(Long sellerId) {
+		return products.countBySeller_IdAndStatus(sellerId, ProductStatus.PENDING);
 	}
 
 	/**
@@ -403,7 +449,9 @@ public class ProductService {
 			.toList();
 		return new SellerProductView(p.getId(), p.getName(), p.getSlug(), p.getBrand(), p.getDescription(),
 				p.getCategory().getId(), p.getCategory().getName(), p.getStatus(), p.getRejectionReason(),
-				p.getPriceFrom(), p.getMrpFrom(), vs, p.getCreatedAt(), p.getUpdatedAt());
+				p.getPriceFrom(), p.getMrpFrom(), vs,
+				p.getImages().stream().map(img -> new ProductDetail.ImageView(img.getUrl(), img.getAltText())).toList(),
+				p.getCreatedAt(), p.getUpdatedAt());
 	}
 
 	private static String blankToNull(String s) {

@@ -19,6 +19,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
 	Optional<Product> findBySlug(String slug);
 
+	/** Seller dashboard: e.g. how many of my products wait for the admin (PENDING). */
+	long countBySeller_IdAndStatus(Long sellerId, ProductStatus status);
+
 	/** The listing: seller and category come in the same query (every product card shows them). */
 	@Override
 	@EntityGraph(attributePaths = { "seller", "category" })

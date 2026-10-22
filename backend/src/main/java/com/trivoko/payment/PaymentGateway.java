@@ -27,6 +27,12 @@ public interface PaymentGateway {
 	/** Gives the money back (a payment that arrived after the stock was gone). */
 	void refund(String sessionId);
 
+	/**
+	 * Gives PART of the money back (one cancelled package). key = an idempotency key: the same key twice never
+	 * refunds twice (a retried request, a double click).
+	 */
+	void refundPart(String sessionId, BigDecimal amount, String key);
+
 	/** What to charge: one amount for the whole order (coupon and delivery already inside). */
 	record OrderPayment(String orderNumber, String customerEmail, BigDecimal amount, String description) {
 	}

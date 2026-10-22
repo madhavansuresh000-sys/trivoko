@@ -89,7 +89,7 @@ class OrderEmailsTest {
 
 	@AfterEach
 	void clean() {
-		for (String table : List.of("notifications", "payments", "order_items", "packages", "orders", "cart_items", "carts",
+		for (String table : List.of("notifications", "payments", "order_items", "package_events", "seller_ledger", "packages", "orders", "cart_items", "carts",
 				"addresses", "processed_payment_events")) {
 			jdbc.update("DELETE FROM " + table);
 		}
@@ -141,6 +141,20 @@ class OrderEmailsTest {
 		assertThat(jdbc.queryForObject("SELECT status FROM orders WHERE number = ?", String.class, number)).isEqualTo("PAID");
 		// the emails still go out, a little later, in the background
 		verify(mail, org.mockito.Mockito.timeout(15_000).times(3)).send(any(SimpleMailMessage.class));
+	}
+
+	/** A notification deleted while its email is being sent (e.g. cleanup): the sender just moves on. */
+	@Test
+	void notificationDeletedWhileSendingIsIgnored() throws Exception {
+		jdbc.update("""
+				INSERT INTO notifications (user_id, kind, title, body, email_status) VALUES (2, 'ORDER_PLACED', 't', 'b', 'PENDING')""");
+		long id = jdbc.queryForObject("SELECT MAX(id) FROM notifications", Long.class);
+		org.mockito.Mockito.doAnswer(call -> {
+			jdbc.update("DELETE FROM notifications WHERE id = ?", id); // gone while the mail server is talking
+			return null;
+		}).when(mail).send(any(SimpleMailMessage.class));
+
+		assertThat(emails.send(id)).isTrue(); // the email went out; there is just nothing left to mark
 	}
 
 	@Test

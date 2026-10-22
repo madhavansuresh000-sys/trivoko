@@ -98,3 +98,26 @@ Other choices made with it:
 - **Stripe sees one line** (the grand total), because coupon shares and delivery are already inside it.
 - **Emails go out after the commit, on a background thread** (found in the browser check: a slow mail server
   made "Pay" time out although the order was paid), with retries every minute.
+
+---
+
+## D6 - Packages as a state machine, money as ledger lines (Phase 5, 5 Oct 2026)
+
+**State machine.** `PackageStatus.allowedNext()` is the ONE place that says which move is legal; `OrderPackage.moveTo`
+checks it, and every move also writes a `package_events` row - so the customer's tracking timeline is simply the list
+of moves. An illegal move (ship before pack, cancel after shipping) is 409 with a plain message.
+
+**Two people, one package.** The packages row has `@Version`. Cancel and ship at the same moment: the first commit
+wins, the second gets 409. The cancel saves (flushes) the status FIRST and only then gives stock and money back, so a
+lost race never refunds anything (`cancelVsShipRace`).
+
+**Ledger, not a balance column.** A delivered package adds a `SALE` line of +90% of what the customer paid for it;
+the balance is the SUM of the lines. A stored balance can drift and cannot be explained; lines can always be added up
+again and each rupee points to an order. A UNIQUE (package, kind) key makes "Mark delivered" twice harmless.
+
+**Partial refunds.** Cancelling one package refunds that package's total (its coupon share already subtracted)
+through `PaymentGateway.refundPart` with the idempotency key `refund-package-<id>`; the payment remembers how much
+was refunded and never gives back more than was paid.
+
+Found on the way: `@EnableCaching` was missing (so `@Cacheable` silently did nothing), and the shared `Modal`
+re-focused itself after every keystroke when its parent re-rendered.

@@ -8,18 +8,26 @@ import { CloseIcon } from './icons'
  */
 export default function Modal({ open, onClose, title, children, footer }) {
   const dialogRef = useRef(null)
+  // the latest onClose, without re-running the effect: parents usually pass a new arrow function on every render,
+  // and re-running the effect moved the focus back to the dialog after each typed letter (Phase 5 bug)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return undefined
-    const onKey = (e) => e.key === 'Escape' && onClose()
+    const onKey = (e) => e.key === 'Escape' && onCloseRef.current()
     document.addEventListener('keydown', onKey)
-    dialogRef.current?.focus()
+    // focus the first field (or the dialog itself) ONCE, when it opens
+    const first = dialogRef.current?.querySelector('input, textarea, select')
+    ;(first ?? dialogRef.current)?.focus()
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

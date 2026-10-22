@@ -51,6 +51,10 @@ public class SellerService {
 	}
 
 	/** The shop this user owns (any status), or empty if they never applied. */
+	public String shopName(Long sellerId) {
+		return get(sellerId).getShopName();
+	}
+
 	/** The user who owns this shop (Phase 4: who gets the "new package to pack" email). */
 	public Long ownerOf(Long sellerId) {
 		return get(sellerId).getOwnerId();

@@ -98,7 +98,7 @@ public class OrderService {
 	private void markPaid(Order order, String sessionId) {
 		order.setStatus(OrderStatus.PAID);
 		order.setPaidAt(LocalDateTime.now());
-		order.getPackages().forEach(p -> p.setStatus(PackageStatus.PLACED));
+		order.getPackages().forEach(p -> p.moveTo(PackageStatus.PLACED, PackageEvent.Actor.SYSTEM, "Payment received"));
 		paymentService.markPaid(sessionId);
 		if (order.getCouponCode() != null) {
 			couponService.redeem(order.getCouponCode(), order.getUserId(), order.getId());
@@ -125,7 +125,7 @@ public class OrderService {
 			return;
 		}
 		order.setStatus(OrderStatus.EXPIRED);
-		order.getPackages().forEach(p -> p.setStatus(PackageStatus.EXPIRED));
+		order.getPackages().forEach(p -> p.moveTo(PackageStatus.EXPIRED, PackageEvent.Actor.SYSTEM, "Not paid within 10 minutes"));
 		productService.releaseStock(quantities(order));
 		paymentService.expireOpenPages(order.getId());
 		log.info("Order {} EXPIRED (not paid in time), stock released", order.getNumber());

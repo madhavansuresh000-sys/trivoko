@@ -5,7 +5,7 @@ import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-
 import useCategories from '../../hooks/useCategories'
 import useTheme from '../../hooks/useTheme'
 import { lookOf } from '../../lib/categoryLook'
-import { firstName, logout, selectAuthStatus, selectUser } from '../../store/authSlice'
+import { firstName, isActiveSeller, logout, selectAuthStatus, selectUser } from '../../store/authSlice'
 import { selectCartCount } from '../../store/cartSlice'
 import { notify } from '../../store/notificationsSlice'
 import {
@@ -136,7 +136,8 @@ function useLogout() {
 /** "Hi, Ravi ▾" -> My addresses · Become a seller / My shop · Log out */
 function AccountMenu({ user }) {
   const doLogout = useLogout()
-  const shopLabel = user.seller ? 'My shop application' : 'Become a seller'
+  const shopLabel = isActiveSeller(user) ? 'My shop (seller back office)' : user.seller ? 'My shop application' : 'Become a seller'
+  const shopLink = isActiveSeller(user) ? '/seller' : '/sell'
   return (
     <Dropdown label="Account menu" button={<><UserIcon className="h-4 w-4" /> Hi, {firstName(user)}</>}>
       {(close) => (
@@ -144,7 +145,7 @@ function AccountMenu({ user }) {
           <p className="truncate px-3 pb-2 pt-1 text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           <Link to="/orders" className={menuItem} onClick={close}><PackageIcon className="h-4 w-4" /> My orders</Link>
           <Link to="/account/addresses" className={menuItem} onClick={close}><MapPinIcon className="h-4 w-4" /> My addresses</Link>
-          <Link to="/sell" className={menuItem} onClick={close}><StoreIcon className="h-4 w-4" /> {shopLabel}</Link>
+          <Link to={shopLink} className={menuItem} onClick={close}><StoreIcon className="h-4 w-4" /> {shopLabel}</Link>
           <button type="button" className={menuItem} onClick={() => { close(); doLogout() }}>
             <LogoutIcon className="h-4 w-4" /> Log out
           </button>
@@ -189,7 +190,7 @@ function MobileMenu({ user }) {
             <p className="px-3 pb-1 text-xs text-slate-500 dark:text-slate-400">Logged in as {user.email}</p>
             <Link to="/orders" className={link}>My orders</Link>
             <Link to="/account/addresses" className={link}>My addresses</Link>
-            <Link to="/sell" className={link}>{user.seller ? 'My shop application' : 'Become a seller'}</Link>
+            <Link to={isActiveSeller(user) ? '/seller' : '/sell'} className={link}>{isActiveSeller(user) ? 'My shop' : user.seller ? 'My shop application' : 'Become a seller'}</Link>
             <button type="button" className={`${link} w-full text-left`} onClick={doLogout}>Log out</button>
           </>
         ) : (
