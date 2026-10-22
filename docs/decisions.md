@@ -121,3 +121,23 @@ was refunded and never gives back more than was paid.
 
 Found on the way: `@EnableCaching` was missing (so `@Cacheable` silently did nothing), and the shared `Modal`
 re-focused itself after every keystroke when its parent re-rendered.
+
+## D7 - Blocking: one reason, one place, takes effect at once (Phase 6, 13 Oct 2026)
+
+**Block is a state, not a delete.** A blocked shop keeps `status = BLOCKED` plus `block_reason` (V8); an unblocked shop
+goes straight back to `APPROVED` (no second review - the admin already trusted it once). Nothing is removed, so
+orders, ledger lines and the audit log still point at real rows.
+
+**Products vanish from one place.** Every shop query goes through `ProductSpecifications.visibleInShop()` (ACTIVE
+product of an APPROVED shop). Blocking a shop therefore hides its products on the listing, product page and brands
+without touching a single product row - and unblocking brings them back.
+
+**Blocked users stop at once.** `JwtCookieFilter` loads the user through `findActiveById` on every request (D3), so
+`users.enabled = false` kills the cookie they already hold on their next click - no token blacklist needed. An
+ADMIN account cannot be blocked from the panel (409), so the admin can never lock everyone out.
+
+**Reports are `GROUP BY`, not loops.** `ReportRepository` lets MySQL add up the day / product / shop totals and send
+back only those rows. A "sale" is a package that is not cancelled or expired, the same rule as the seller chart.
+
+**Likes helper.** Search boxes go through `Likes.contains(text)`, which escapes `%` and `_` so typing `100%` searches
+for that text and cannot turn into a wildcard.

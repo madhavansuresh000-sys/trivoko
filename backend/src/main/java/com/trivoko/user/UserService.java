@@ -1,15 +1,23 @@
 package com.trivoko.user;
 
+import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.admin.AuditService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
+import com.trivoko.common.Likes;
+import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
+import com.trivoko.user.dto.AdminUserView;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +29,8 @@ public class UserService {
 	private final UserRepository users;
 
 	private final PasswordEncoder passwordEncoder;
+
+	private final AuditService audit;
 
 	/**
 	 * New CUSTOMER account. The password is stored only as a BCrypt hash: a one-way "fingerprint" with
@@ -62,6 +72,61 @@ public class UserService {
 	@Transactional
 	public void addRole(Long userId, Role role) {
 		getById(userId).getRoles().add(role);
+	}
+
+	// ---------- The admin's user page (Phase 6) ----------
+
+	/** Newest accounts first. q = part of the email, name or phone. */
+	@Transactional(readOnly = true)
+	public PageResponse<AdminUserView> search(String q, Pageable pageable) {
+		return PageResponse.from(users.search(Likes.contains(q), pageable), UserService::adminView);
+	}
+
+	@Transactional(readOnly = true)
+	public long countUsers() {
+		return users.count();
+	}
+
+	/** id -> email for a list that shows "who did it" (the activity log). Unknown ids are left out. */
+	@Transactional(readOnly = true)
+	public Map<Long, String> emailsOf(Collection<Long> ids) {
+		return ids.isEmpty() ? Map.of()
+				: users.findByIdIn(ids).stream().collect(Collectors.toMap(User::getId, User::getEmail));
+	}
+
+	/**
+	 * Blocked = cannot log in, and the cookie they already have stops working on their next click (the JWT filter
+	 * asks findActiveById on every request). An admin account cannot be blocked from the panel - so the admin can
+	 * never lock themselves (or the only other admin) out.
+	 */
+	@Transactional
+	public AdminUserView block(Long userId) {
+		User user = getById(userId);
+		if (user.getRoles().contains(Role.ADMIN)) {
+			throw new BusinessRuleException("An admin account cannot be blocked.");
+		}
+		if (!user.isEnabled()) {
+			throw new BusinessRuleException("This account is already blocked.");
+		}
+		user.setEnabled(false);
+		audit.record("USER_BLOCKED", "USER", user.getId(), user.getEmail());
+		return adminView(user);
+	}
+
+	@Transactional
+	public AdminUserView unblock(Long userId) {
+		User user = getById(userId);
+		if (user.isEnabled()) {
+			throw new BusinessRuleException("This account is not blocked.");
+		}
+		user.setEnabled(true);
+		audit.record("USER_UNBLOCKED", "USER", user.getId(), user.getEmail());
+		return adminView(user);
+	}
+
+	private static AdminUserView adminView(User u) {
+		return new AdminUserView(u.getId(), u.getEmail(), u.getFullName(), u.getPhone(),
+				u.getRoles().stream().map(Enum::name).sorted().toList(), !u.isEnabled(), u.getCreatedAt());
 	}
 
 	/** Emails are stored in lower case, so "Ravi@TriVoKo.test" and "ravi@trivoko.test" are one account. */

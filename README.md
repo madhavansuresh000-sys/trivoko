@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 5 - Seller dashboard** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded).
+> **Status: Phase 6 - Admin panel** (October 2026): customers pay once for a cart from many sellers (Phase 4); each seller now runs a back office - packs and ships their own packages (with a tracking number), sees earnings (90% of every delivered package) and sales charts, and manages products with photos. Customers follow every package on a tracking timeline and can cancel a package before it ships (refunded). The admin now has a panel of its own: approve or block shops (with a reason the owner sees), review products, block users, edit or end coupons, read sales reports and the activity log.
 
 ## What it will do
 
@@ -95,6 +95,28 @@ Phase 10) and `GET /api/products/brands?category=phones` (brands with counts for
 Pages: `/seller` (dashboard), `/seller/orders`, `/seller/products` (+ editor with photos), `/seller/earnings`,
 `/seller/analytics`. The customer's order page shows a tracking timeline per package. Two people changing the same
 package at once: `@Version` makes one of them get 409 (`PackageMovesTest.cancelVsShipRace`).
+
+### Admin panel (Phase 6)
+
+The admin is the mall office: decides which shops may open, closes a shop that cheats, prints coupons, reads the
+sales register. Every URL below is ADMIN only (a customer or seller gets 403 - `AdminSecurityTest`), lists are paged
+(20 a page, `PageResponse`) and every change writes one line in the activity log.
+
+| URL | What it does |
+|---|---|
+| `GET /api/admin/overview` | Cards: shops and products waiting, customers, approved shops, today's orders and sales |
+| `GET /api/admin/sellers?status=&q=&page=`, `POST .../{id}/approve` - `reject {reason}` - `block {reason}` - `unblock` | Shops queue. Block/reject need a reason (5-300 chars) that the owner sees; a blocked shop's products leave every shop page at once |
+| `GET /api/admin/products?status=&q=&page=`, `POST .../{id}/approve` - `reject {reason}` | Product review queue |
+| `GET /api/admin/users?q=&page=`, `POST .../{id}/block` - `unblock` | Search users; a blocked user cannot log in and their cookie stops working on the next click. An admin cannot be blocked (409) |
+| `GET /api/admin/orders?q=&status=&page=`, `GET .../{number}` | Find an order by number or customer email |
+| `GET/POST /api/admin/coupons`, `PUT .../{id}`, `POST .../{id}/end` | Edit (not the code or type) or end a coupon; ended coupons are kept because redemptions point to them |
+| `GET /api/admin/reports/sales?days=` - `top-products?days=` - `top-sellers?days=` | `GROUP BY` reports, cached 60 s |
+| `GET /api/admin/activity?action=&page=` | The audit log, newest first, with who did it |
+
+Shop owners get a bell + email when their shop is approved, rejected, blocked or unblocked, and when a product is rejected
+(approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
+`/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
+block reason and an index for the activity log.
 
 ### Checkout & payments (Phase 4)
 

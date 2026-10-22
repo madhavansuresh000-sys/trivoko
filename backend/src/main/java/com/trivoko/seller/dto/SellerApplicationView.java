@@ -1,9 +1,11 @@
 package com.trivoko.seller.dto;
 
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.trivoko.seller.SellerStatus;
 
-/** A shop application as its owner and the admin see it. rejectReason is left out when empty. */
+/** A shop application as its owner and the admin see it. the reasons are left out when empty. */
 public record SellerApplicationView(
 		Long id,
 		Long ownerId,
@@ -13,5 +15,7 @@ public record SellerApplicationView(
 		String description,
 		String gstin,
 		SellerStatus status,
-		@JsonInclude(JsonInclude.Include.NON_NULL) String rejectReason) {
+		@JsonInclude(JsonInclude.Include.NON_NULL) String rejectReason,
+		@JsonInclude(JsonInclude.Include.NON_NULL) String blockReason,
+		LocalDateTime createdAt) {
 }

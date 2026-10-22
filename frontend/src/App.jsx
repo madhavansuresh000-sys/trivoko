@@ -31,6 +31,15 @@ const SellerProductsPage = lazy(() => import('./pages/seller/SellerProductsPage'
 const ProductEditorPage = lazy(() => import('./pages/seller/ProductEditorPage'))
 const EarningsPage = lazy(() => import('./pages/seller/EarningsPage'))
 const AnalyticsPage = lazy(() => import('./pages/seller/AnalyticsPage'))
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
+const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage'))
+const AdminShopsPage = lazy(() => import('./pages/admin/AdminShopsPage'))
+const AdminProductsPage = lazy(() => import('./pages/admin/AdminProductsPage'))
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
+const AdminOrdersPage = lazy(() => import('./pages/admin/AdminOrdersPage'))
+const AdminCouponsPage = lazy(() => import('./pages/admin/AdminCouponsPage'))
+const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'))
+const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'))
 
 export default function App() {
   const dispatch = useDispatch()
@@ -69,6 +78,17 @@ export default function App() {
             <Route path="products/:id" element={<ProductEditorPage />} />
             <Route path="earnings" element={<EarningsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+          </Route>
+          {/* the admin panel (Phase 6); AdminLayout shows "not for you" to everyone who is not ADMIN */}
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="shops" element={<AdminShopsPage />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="coupons" element={<AdminCouponsPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="activity" element={<AdminActivityPage />} />
           </Route>
         </Route>
         <Route path="style-guide" element={<StyleGuidePage />} />

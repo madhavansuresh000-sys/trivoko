@@ -68,7 +68,7 @@ class ProductLifecycleTest {
 
 		mvc.perform(get("/api/admin/products").param("status", "PENDING").cookie(admin))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$[?(@.id == " + id + ")].name").value(org.hamcrest.Matchers.contains("Kovai Yoga Mat")));
+			.andExpect(jsonPath("$.content[?(@.id == " + id + ")].name").value(org.hamcrest.Matchers.contains("Kovai Yoga Mat")));
 
 		mvc.perform(post("/api/admin/products/" + id + "/approve").with(csrf()).cookie(admin))
 			.andExpect(status().isOk())

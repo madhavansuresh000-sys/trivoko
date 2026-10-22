@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -98,6 +99,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
 				"This record was changed by someone else. Please reload and try again.");
+	}
+
+	/** The database picked this request as the loser of a lock clash (deadlock / lock wait): same answer as above. */
+	@ExceptionHandler(PessimisticLockingFailureException.class)
+	ProblemDetail handleLockClash(PessimisticLockingFailureException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+				"Someone else is changing this at the same moment. Please reload and try again.");
 	}
 
 	/** Login failed. Same message for "no such email" and "wrong password" (do not reveal which emails exist). */

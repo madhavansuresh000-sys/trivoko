@@ -52,7 +52,8 @@ class RoleChangeTest {
 		mvc.perform(post("/api/admin/sellers/" + shopId + "/approve").with(csrf()).cookie(admin)).andExpect(status().isOk());
 		mvc.perform(get("/api/seller/products").cookie(ravi)).andExpect(status().isOk());
 
-		mvc.perform(post("/api/admin/sellers/" + shopId + "/block").with(csrf()).cookie(admin)).andExpect(status().isOk());
+		mvc.perform(post("/api/admin/sellers/" + shopId + "/block").with(csrf()).cookie(admin)
+			.contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"Selling fake goods\"}")).andExpect(status().isOk());
 		mvc.perform(get("/api/seller/products").cookie(ravi)).andExpect(status().isForbidden());
 
 		assertThat(audit.latestFor("SELLER", shopId))

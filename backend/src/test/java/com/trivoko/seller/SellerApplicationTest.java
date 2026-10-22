@@ -111,7 +111,7 @@ class SellerApplicationTest {
 	@Test
 	void blockedSellerMayNotApplyAgain() throws Exception {
 		Cookie kovai = Logins.as(mvc, "kovai.sports");
-		adminDoes("block", 2, null).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("BLOCKED"));
+		adminDoes("block", 2, "{\"reason\":\"Selling fake goods\"}").andExpect(status().isOk()).andExpect(jsonPath("$.status").value("BLOCKED"));
 		apply(kovai, "Kovai Sports New").andExpect(status().isForbidden());
 	}
 
@@ -124,7 +124,7 @@ class SellerApplicationTest {
 	void adminListsPendingShops() throws Exception {
 		mvc.perform(get("/api/admin/sellers").param("status", "PENDING").cookie(admin))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$[*].slug").value(org.hamcrest.Matchers.contains("erode-organics")));
+			.andExpect(jsonPath("$.content[*].slug").value(org.hamcrest.Matchers.contains("erode-organics")));
 	}
 
 	@Test

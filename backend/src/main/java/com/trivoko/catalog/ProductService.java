@@ -19,6 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.catalog.dto.AdminProductRow;
 import com.trivoko.catalog.dto.BrandCount;
 import com.trivoko.catalog.dto.CartVariant;
 import com.trivoko.catalog.dto.ImageInput;
@@ -33,9 +34,11 @@ import com.trivoko.admin.AuditService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
 import com.trivoko.common.PageResponse;
+import com.trivoko.notify.NotificationKind;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.common.Slugs;
 import com.trivoko.seller.Seller;
+import com.trivoko.seller.SellerService;
 import com.trivoko.seller.SellerStatus;
 
 import jakarta.persistence.EntityManager;
@@ -55,9 +58,11 @@ public class ProductService {
 
 	private final ImageUploadService uploads;
 
+	private final SellerService sellerService;
+
 	ProductService(ProductRepository products, ProductVariantRepository variants,
 			PriceHistoryRepository priceHistory, CategoryService categoryService, CategoryRepository categories,
-			AuditService audit, EntityManager em, ImageUploadService uploads) {
+			AuditService audit, EntityManager em, ImageUploadService uploads, SellerService sellerService) {
 		this.products = products;
 		this.variants = variants;
 		this.priceHistory = priceHistory;
@@ -66,6 +71,7 @@ public class ProductService {
 		this.audit = audit;
 		this.em = em;
 		this.uploads = uploads;
+		this.sellerService = sellerService;
 	}
 
 	/** The shop listing: only what the public may see, with the customer's filters. */
@@ -316,11 +322,23 @@ public class ProductService {
 
 	// ---------- The admin's decisions (Phase 2 endpoints; the admin pages come in Phase 6) ----------
 
-	/** The admin's queue, oldest first (first come, first served). */
-	public List<SellerProductView> listByStatus(ProductStatus status) {
-		return products.findAll((root, query, cb) -> cb.equal(root.get("status"), status), Sort.by("id")).stream()
-			.map(ProductService::toSellerView)
-			.toList();
+	/**
+	 * The admin's product list (Phase 6): status null = all; q = every word in the name or brand (same search as
+	 * the shop box). The caller's page decides the order (the PENDING queue: oldest first).
+	 */
+	public PageResponse<AdminProductRow> searchForAdmin(ProductStatus status, String q, Pageable pageable) {
+		Specification<Product> spec = Specification.unrestricted();
+		if (status != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+		}
+		if (q != null && !q.isBlank()) {
+			spec = spec.and(ProductSpecifications.matchesWords(q));
+		}
+		return PageResponse.from(products.findAll(spec, pageable), ProductService::toAdminRow);
+	}
+
+	public long countByStatus(ProductStatus status) {
+		return products.count((root, query, cb) -> cb.equal(root.get("status"), status));
 	}
 
 	/** PENDING -> ACTIVE: customers can see and buy it now. The shop itself must still be APPROVED. */
@@ -334,6 +352,9 @@ public class ProductService {
 		product.setStatus(ProductStatus.ACTIVE);
 		product.setRejectionReason(null);
 		audit.record("PRODUCT_APPROVED", "PRODUCT", product.getId(), product.getName());
+		sellerService.notifyOwner(product.getSeller().getId(), NotificationKind.PRODUCT_APPROVED,
+				product.getName() + " is live", "Customers can see and buy it now.",
+				"/products/" + product.getSlug(), false); // good news: the bell is enough (spec 4 [default])
 		return toSellerView(product);
 	}
 
@@ -344,6 +365,9 @@ public class ProductService {
 		product.setStatus(ProductStatus.REJECTED);
 		product.setRejectionReason(reason.trim());
 		audit.record("PRODUCT_REJECTED", "PRODUCT", product.getId(), reason.trim());
+		sellerService.notifyOwner(product.getSeller().getId(), NotificationKind.PRODUCT_REJECTED,
+				product.getName() + " was not approved", "Reason: " + reason.trim() + " Fix it and send it again.",
+				"/seller/products/" + product.getId(), true);
 		return toSellerView(product);
 	}
 
@@ -439,6 +463,13 @@ public class ProductService {
 		String sku = "P" + product.getId() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.ROOT);
 		return new ProductVariant(sku, v.label().trim(), blankToNull(v.size()), blankToNull(v.colour()), v.price(),
 				v.mrp(), v.stock());
+	}
+
+	private static AdminProductRow toAdminRow(Product p) {
+		return new AdminProductRow(p.getId(), p.getName(), p.getSlug(), p.getBrand(), p.getCategory().getName(),
+				p.getStatus(), p.getRejectionReason(), p.getPriceFrom(), p.getVariants().size(),
+				p.getImages().isEmpty() ? null : p.getImages().getFirst().getUrl(),
+				p.getSeller().getId(), p.getSeller().getShopName(), p.getCreatedAt());
 	}
 
 	private static SellerProductView toSellerView(Product p) {
