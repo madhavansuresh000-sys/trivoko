@@ -141,3 +141,5 @@ Date        Time   File                                                         
 2026-10-21  2344   PR #4 merged (by Madhavan); branches phase-5 + phase-6 pushed; PR #5 opened
 2026-10-22  0850   PR #5 merged, PR #6 (Phase 6 admin panel) opened + CI green + merged -> PHASES 0-6 ON MAIN
 2026-10-22  0920   Phase 7 committed be832b8 on phase-7-flash-sale (local, NOT pushed): V9 flash tables, atomic claim, give-back, settle, rate limit, pages, k6 burst/spread 100 winners / 0 oversell / 0 errors (p95 1082 / 517 ms); README Phase 7 + D8; Session_Summary_2026-10-22_0920.md
+2026-10-22  1050   PR #7 CI fix (test pool 10 connections, 931aae2) -> CI green -> PR #7 MERGED: PHASES 0-7 ON MAIN
+2026-10-22  1110   Phase 8 branch (local, push pending): spec + plan, step 1 V10 returns tables/entities/repo (f780456, not yet compiled - CI after push), lesson for Madhavan's steps 2-3 (bc6fed7)
