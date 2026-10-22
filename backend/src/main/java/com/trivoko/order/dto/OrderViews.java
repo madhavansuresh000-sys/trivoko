@@ -35,7 +35,16 @@ public final class OrderViews {
 	}
 
 	public record ItemDetail(Long variantId, String productSlug, String productName, String variantLabel,
-			BigDecimal unitPrice, BigDecimal mrp, int quantity, BigDecimal lineTotal, BigDecimal discountShare) {
+			BigDecimal unitPrice, BigDecimal mrp, int quantity, BigDecimal lineTotal, BigDecimal discountShare, Long id) {
+	}
+
+	/**
+	 * Phase 8: one bought line as the returns module needs it. refundAmount = lineTotal - discountShare (the money
+	 * the customer really paid for this line; delivery is not refunded).
+	 */
+	public record ReturnableLine(Long orderItemId, Long packageId, Long orderId, String orderNumber, Long sellerId,
+			String sellerName, Long variantId, String productName, String variantLabel, int quantity, boolean flash,
+			PackageStatus packageStatus, LocalDateTime deliveredAt, BigDecimal refundAmount) {
 	}
 
 	public static OrderSummary summary(Order o) {
@@ -54,7 +63,7 @@ public final class OrderViews {
 		return new PackageDetail(p.getId(), p.getSellerName(), p.getStatus(), p.getItemsTotal(), p.getDiscount(),
 				p.getShippingFee(), p.getTotal(), p.getItems().stream().map(i -> new ItemDetail(i.getVariantId(),
 						i.getProductSlug(), i.getProductName(), i.getVariantLabel(), i.getUnitPrice(), i.getMrp(),
-						i.getQuantity(), i.getLineTotal(), i.getDiscountShare())).toList(), p.getTrackingNumber(),
+						i.getQuantity(), i.getLineTotal(), i.getDiscountShare(), i.getId())).toList(), p.getTrackingNumber(),
 				p.getCancelReason(),
 				p.getEvents().stream().map(e -> new EventView(e.getStatus(), e.getNote(), e.getCreatedAt())).toList());
 	}
