@@ -4,12 +4,14 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.trivoko.catalog.ImageUploadService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
+import com.trivoko.common.PageResponse;
 import com.trivoko.common.ResourceNotFoundException;
 import com.trivoko.order.OrderService;
 import com.trivoko.order.PackageStatus;
@@ -30,6 +32,9 @@ public class ReturnService {
 
 	/** How long after delivery a customer may still ask (spec section 3). */
 	static final Duration RETURN_WINDOW = Duration.ofDays(7);
+
+	/** A seller who does not answer in this time has said yes (spec section 2: the auto-approve job). */
+	static final Duration SELLER_ANSWER_TIME = Duration.ofDays(2);
 
 	private final ReturnRequestRepository returns;
 
@@ -92,6 +97,49 @@ public class ReturnService {
 		ReturnRequest ret = mine(customerId, returnId);
 		return ReturnView.of(moveTo(ret, ReturnStatus.CANCELLED, ReturnEvent.Actor.CUSTOMER, "Cancelled by the customer"));
 	}
+
+	// ---------- step 5: the seller answers ----------
+
+	/** The seller's returns queue, newest first; status = null means all. */
+	public PageResponse<ReturnView> forSeller(Long sellerId, ReturnStatus status, Pageable pageable) {
+		return PageResponse.from(status == null ? returns.findBySellerId(sellerId, pageable)
+				: returns.findBySellerIdAndStatus(sellerId, status, pageable), ReturnView::of);
+	}
+
+	@Transactional
+	public ReturnView approve(Long sellerId, Long returnId) {
+		return ReturnView.of(moveTo(ofSeller(sellerId, returnId), ReturnStatus.APPROVED, ReturnEvent.Actor.SELLER,
+				"Approved by the seller - a courier will collect it"));
+	}
+
+	/** A "no" always carries a reason the customer sees (and the admin reads if they escalate). */
+	@Transactional
+	public ReturnView reject(Long sellerId, Long returnId, String reason) {
+		ReturnRequest ret = ofSeller(sellerId, returnId);
+		ret.setRejectReason(reason.trim());
+		return ReturnView.of(moveTo(ret, ReturnStatus.REJECTED, ReturnEvent.Actor.SELLER, reason.trim()));
+	}
+
+	/**
+	 * The job: REQUESTED for more than 2 days with no answer -> APPROVED by the system, so a silent seller can never
+	 * block a customer's money. Returns how many were approved.
+	 */
+	@Transactional
+	public int autoApproveOld() {
+		List<ReturnRequest> waiting = returns.findByStatusAndCreatedAtBefore(ReturnStatus.REQUESTED,
+				LocalDateTime.now().minus(SELLER_ANSWER_TIME));
+		waiting.forEach(r -> moveTo(r, ReturnStatus.APPROVED, ReturnEvent.Actor.SYSTEM,
+				"Approved automatically - the seller did not answer in 2 days"));
+		return waiting.size();
+	}
+
+	/** Another shop's return is "not found" (404). */
+	private ReturnRequest ofSeller(Long sellerId, Long returnId) {
+		return returns.findByIdAndSellerId(returnId, sellerId)
+			.orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
+	}
+
+	// ---------- the customer's lists ----------
 
 	public List<ReturnView> mine(Long customerId) {
 		return returns.findByCustomerIdOrderByIdDesc(customerId).stream().map(ReturnView::of).toList();
