@@ -21,6 +21,8 @@ import com.trivoko.returns.dto.ReturnDtos.ReturnView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 /** The customer's side of returns (Phase 8 step 4). Any logged-in user; only their own lines and returns. */
@@ -31,6 +33,12 @@ import lombok.RequiredArgsConstructor;
 public class CustomerReturnController {
 
 	private final ReturnService returns;
+
+	public record EscalateRequest(
+			@NotBlank(message = "note is required")
+			@Size(min = 5, max = 300, message = "note must be 5 to 300 characters")
+			String note) {
+	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -55,6 +63,13 @@ public class CustomerReturnController {
 	@Operation(summary = "One of my returns with its timeline")
 	public ReturnView one(@AuthenticationPrincipal AuthUser user, @PathVariable Long id) {
 		return returns.one(user.id(), id);
+	}
+
+	@PostMapping("/{id}/escalate")
+	@Operation(summary = "Ask the admin to look again at a rejected return (once, within 3 days)")
+	public ReturnView escalate(@AuthenticationPrincipal AuthUser user, @PathVariable Long id,
+			@Valid @RequestBody EscalateRequest request) {
+		return returns.escalate(user.id(), id, request.note());
 	}
 
 	@PostMapping("/{id}/cancel")

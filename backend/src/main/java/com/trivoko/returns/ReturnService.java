@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.trivoko.admin.AuditService;
 import com.trivoko.catalog.ImageUploadService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
@@ -36,11 +37,16 @@ public class ReturnService {
 	/** A seller who does not answer in this time has said yes (spec section 2: the auto-approve job). */
 	static final Duration SELLER_ANSWER_TIME = Duration.ofDays(2);
 
+	/** How long after a "no" the customer may still ask the admin (spec section 2, default). */
+	static final Duration ESCALATE_WINDOW = Duration.ofDays(3);
+
 	private final ReturnRequestRepository returns;
 
 	private final OrderService orders;
 
 	private final ImageUploadService uploads;
+
+	private final AuditService audit;
 
 	/**
 	 * The ONLY way a return changes status.
@@ -137,6 +143,52 @@ public class ReturnService {
 	private ReturnRequest ofSeller(Long sellerId, Long returnId) {
 		return returns.findByIdAndSellerId(returnId, sellerId)
 			.orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
+	}
+
+	// ---------- step 6: escalate once, the admin decides ----------
+
+	/**
+	 * The customer disagrees with the seller's "no" and asks the admin - once (ESCALATED never goes back to REJECTED),
+	 * and within 3 days of the rejection. The rejection time is the return's last change (nothing else moves a
+	 * REJECTED return).
+	 */
+	@Transactional
+	public ReturnView escalate(Long customerId, Long returnId, String note) {
+		ReturnRequest ret = mine(customerId, returnId);
+		if (ret.getStatus() == ReturnStatus.REJECTED
+				&& LocalDateTime.now().isAfter(ret.getUpdatedAt().plus(ESCALATE_WINDOW))) {
+			throw new BusinessRuleException("You can ask the admin within 3 days of the seller's answer.");
+		}
+		ret.setEscalatedAt(LocalDateTime.now());
+		return ReturnView.of(moveTo(ret, ReturnStatus.ESCALATED, ReturnEvent.Actor.CUSTOMER, note.trim()));
+	}
+
+	/** The admin's disputes page: one status (ESCALATED by default in the controller), oldest first is fairest. */
+	public PageResponse<ReturnView> forAdmin(ReturnStatus status, Pageable pageable) {
+		return PageResponse.from(returns.findByStatus(status, pageable), ReturnView::of);
+	}
+
+	/** The admin sides with the customer: the return goes on as if the seller had said yes. Final. */
+	@Transactional
+	public ReturnView adminApprove(Long returnId, String note) {
+		ReturnRequest ret = any(returnId);
+		String why = note == null || note.isBlank() ? "Approved by TriVoKo after review" : note.trim();
+		moveTo(ret, ReturnStatus.APPROVED, ReturnEvent.Actor.ADMIN, why);
+		audit.record("RETURN_APPROVED", "RETURN", ret.getId(), why);
+		return ReturnView.of(ret);
+	}
+
+	/** The admin agrees with the seller: the return is closed for good, with a reason the customer sees. */
+	@Transactional
+	public ReturnView adminClose(Long returnId, String reason) {
+		ReturnRequest ret = any(returnId);
+		moveTo(ret, ReturnStatus.CLOSED, ReturnEvent.Actor.ADMIN, reason.trim());
+		audit.record("RETURN_CLOSED", "RETURN", ret.getId(), reason.trim());
+		return ReturnView.of(ret);
+	}
+
+	private ReturnRequest any(Long returnId) {
+		return returns.findById(returnId).orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
 	}
 
 	// ---------- the customer's lists ----------
