@@ -58,6 +58,12 @@ public class LedgerEntry {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt = LocalDateTime.now();
 
+	/** Phase 8: a REFUND line names its return (one line per return - the V10 key). */
+	LedgerEntry(Long sellerId, Long packageId, String orderNumber, Long returnId, BigDecimal amount, String note) {
+		this(sellerId, packageId, orderNumber, Kind.REFUND, amount, note);
+		this.returnId = returnId;
+	}
+
 	LedgerEntry(Long sellerId, Long packageId, String orderNumber, Kind kind, BigDecimal amount, String note) {
 		this.sellerId = sellerId;
 		this.packageId = packageId;

@@ -37,6 +37,20 @@ public class LedgerService {
 				"Delivered: " + orderNumber + " (90% of Rs " + Money.round(packageTotal).toPlainString() + ")"));
 	}
 
+	/**
+	 * Phase 8: a returned item was refunded. The seller only ever got 90%, so they give back 90% of the refund
+	 * (a minus line, rounded like the SALE line); TriVoKo gives back its 10% fee. Once per return.
+	 */
+	@Transactional
+	public void recordRefund(Long sellerId, Long packageId, Long returnId, BigDecimal refund, String orderNumber) {
+		if (ledger.existsByReturnIdAndKind(returnId, LedgerEntry.Kind.REFUND)) {
+			return;
+		}
+		BigDecimal amount = refund.multiply(SELLER_SHARE).setScale(2, RoundingMode.HALF_UP).negate();
+		ledger.save(new LedgerEntry(sellerId, packageId, orderNumber, returnId, amount,
+				"Returned: " + orderNumber + " (90% of the Rs " + Money.round(refund).toPlainString() + " refund)"));
+	}
+
 	public BigDecimal balance(Long sellerId) {
 		return Money.round(ledger.balance(sellerId));
 	}

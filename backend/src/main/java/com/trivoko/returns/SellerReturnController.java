@@ -35,6 +35,8 @@ public class SellerReturnController {
 
 	private final ReturnService returns;
 
+	private final ReturnPickup pickup;
+
 	private final SellerAccess sellerAccess;
 
 	public record RejectRequest(
@@ -55,6 +57,12 @@ public class SellerReturnController {
 	@Operation(summary = "Yes - a courier collects the item")
 	public ReturnView approve(@PathVariable Long id) {
 		return returns.approve(sellerAccess.currentSellerId(), id);
+	}
+
+	@PostMapping("/{id}/picked-up")
+	@Operation(summary = "The courier has the item - the customer is refunded at once")
+	public ReturnView pickedUp(@PathVariable Long id) {
+		return pickup.pickedUp(sellerAccess.currentSellerId(), id);
 	}
 
 	@PostMapping("/{id}/reject")
