@@ -1,6 +1,7 @@
 package com.trivoko.catalog;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -229,7 +230,20 @@ public class ProductService {
 	public ProductDetail getBySlug(String slug) {
 		return products.findOne(ProductSpecifications.visibleInShop()
 				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
-			.map(CatalogMapper::toDetail)
+			.map(p -> {
+				// the lowest "from" price of the last 30 days = the smallest of today's price and every old / new
+				// price of a change in that window (a price that held from before the window is a change's old price)
+				PriceWindow window = priceHistory.lowestSince(p.getId(), LocalDateTime.now().minusDays(30));
+				BigDecimal lowest = p.getPriceFrom();
+				for (BigDecimal b : new BigDecimal[] { window.lowestOld(), window.lowestNew() }) {
+					if (b != null && (lowest == null || b.compareTo(lowest) < 0)) {
+						lowest = b;
+					}
+				}
+				boolean moved = window.changes() > 0;
+				boolean lowestNow = moved && p.getPriceFrom() != null && p.getPriceFrom().compareTo(lowest) <= 0;
+				return CatalogMapper.toDetail(p, lowest, lowestNow);
+			})
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
 	}
 

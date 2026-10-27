@@ -27,17 +27,19 @@ final class CatalogMapper {
 				p.getImages().isEmpty() ? null : p.getImages().getFirst().getUrl(),
 				p.getVariants().stream().anyMatch(v -> v.getStock() > 0),
 				p.getSeller().getShopName(), p.getSeller().getSlug(),
-				p.getCategory().getSlug());
+				p.getCategory().getSlug(),
+				p.getRatingAvg(), p.getRatingCount());
 	}
 
-	static ProductDetail toDetail(Product p) {
+	static ProductDetail toDetail(Product p, BigDecimal lowestPrice30Days, boolean lowestNow) {
 		return new ProductDetail(
 				p.getId(), p.getSlug(), p.getName(), p.getBrand(), p.getDescription(),
 				p.getPriceFrom(), p.getMrpFrom(), discountPercent(p.getPriceFrom(), p.getMrpFrom()),
 				toRef(p.getCategory()),
 				new SellerRef(p.getSeller().getShopName(), p.getSeller().getSlug(), p.getSeller().getCity()),
 				p.getVariants().stream().map(CatalogMapper::toView).toList(),
-				p.getImages().stream().map(i -> new ImageView(i.getUrl(), i.getAltText())).toList());
+				p.getImages().stream().map(i -> new ImageView(i.getUrl(), i.getAltText())).toList(),
+				p.getRatingAvg(), p.getRatingCount(), lowestPrice30Days, lowestNow);
 	}
 
 	static VariantView toView(ProductVariant v) {
