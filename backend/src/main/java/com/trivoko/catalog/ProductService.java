@@ -26,6 +26,7 @@ import com.trivoko.catalog.dto.ImageInput;
 import com.trivoko.catalog.dto.LowStockView;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
+import com.trivoko.catalog.dto.ProductRef;
 import com.trivoko.catalog.dto.SellerProductRequest;
 import com.trivoko.catalog.dto.SellerProductView;
 import com.trivoko.catalog.dto.SellerVariantRequest;
@@ -224,6 +225,23 @@ public class ProductService {
 				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
 			.map(CatalogMapper::toDetail)
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Reviews: the live product behind this slug (not live = "not found", the same as the product page). */
+	public ProductRef liveRef(String slug) {
+		return products.findOne(ProductSpecifications.visibleInShop()
+				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
+			.map(p -> new ProductRef(p.getId(), p.getName(), p.getSlug(),
+					p.getVariants().stream().map(ProductVariant::getId).toList()))
+			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Called by the review module after every review write, so cards show stars without counting reviews. */
+	@Transactional
+	public void updateRating(Long productId, BigDecimal average, int count) {
+		products.findById(productId)
+			.orElseThrow(() -> new ResourceNotFoundException("Product", productId))
+			.setRating(average, count);
 	}
 
 	/**
