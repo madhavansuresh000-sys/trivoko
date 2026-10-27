@@ -31,6 +31,7 @@ import com.trivoko.catalog.dto.SellerProductRequest;
 import com.trivoko.catalog.dto.SellerProductView;
 import com.trivoko.catalog.dto.SellerVariantRequest;
 import com.trivoko.catalog.dto.VariantView;
+import com.trivoko.catalog.dto.WatchedProduct;
 import com.trivoko.admin.AuditService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
@@ -234,6 +235,21 @@ public class ProductService {
 			.map(p -> new ProductRef(p.getId(), p.getName(), p.getSlug(),
 					p.getVariants().stream().map(ProductVariant::getId).toList()))
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Wishlist "add": the live product as a card (not live = "not found"). */
+	public ProductCard liveCard(Long productId) {
+		return products.findOne(ProductSpecifications.visibleInShop()
+				.and((root, query, cb) -> cb.equal(root.get("id"), productId)))
+			.map(CatalogMapper::toCard)
+			.orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+	}
+
+	/** Wishlist page and price-drop job: these products, live or not. Unknown ids are left out. */
+	public Map<Long, WatchedProduct> watched(Collection<Long> productIds) {
+		return products.findAllById(productIds).stream()
+			.collect(Collectors.toMap(Product::getId, p -> new WatchedProduct(CatalogMapper.toCard(p),
+					p.getStatus() == ProductStatus.ACTIVE && p.getSeller().getStatus() == SellerStatus.APPROVED)));
 	}
 
 	/** Called by the review module after every review write, so cards show stars without counting reviews. */
