@@ -8,5 +8,7 @@ public enum NotificationKind {
 	ORDER_PLACED, NEW_PACKAGE, PACKAGE_PACKED, PACKAGE_SHIPPED, PACKAGE_DELIVERED, PACKAGE_CANCELLED,
 	SHOP_APPROVED, SHOP_REJECTED, SHOP_BLOCKED, SHOP_UNBLOCKED, PRODUCT_APPROVED, PRODUCT_REJECTED,
 	/** Phase 8: the customer's money for a returned item is on its way. */
-	RETURN_REFUNDED
+	RETURN_REFUNDED,
+	/** Phase 9: a wishlisted product got at least 1% cheaper. */
+	PRICE_DROP
 }

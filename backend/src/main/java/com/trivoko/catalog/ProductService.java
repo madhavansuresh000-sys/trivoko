@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -62,9 +63,12 @@ public class ProductService {
 
 	private final SellerService sellerService;
 
+	private final ApplicationEventPublisher events;
+
 	ProductService(ProductRepository products, ProductVariantRepository variants,
 			PriceHistoryRepository priceHistory, CategoryService categoryService, CategoryRepository categories,
-			AuditService audit, EntityManager em, ImageUploadService uploads, SellerService sellerService) {
+			AuditService audit, EntityManager em, ImageUploadService uploads, SellerService sellerService,
+			ApplicationEventPublisher events) {
 		this.products = products;
 		this.variants = variants;
 		this.priceHistory = priceHistory;
@@ -74,6 +78,7 @@ public class ProductService {
 		this.em = em;
 		this.uploads = uploads;
 		this.sellerService = sellerService;
+		this.events = events;
 	}
 
 	/** The shop listing: only what the public may see, with the customer's filters. */
@@ -280,6 +285,7 @@ public class ProductService {
 		if (oldPrice.compareTo(newPrice) != 0) {
 			priceHistory.save(new PriceHistory(variant, oldPrice, newPrice));
 			audit.record("PRICE_CHANGED", "VARIANT", variant.getId(), oldPrice.toPlainString() + " -> " + newPrice.toPlainString());
+			events.publishEvent(new PriceChanged(variant.getProduct().getId())); // wishlist marks its rows after commit
 		}
 		variant.setPrice(newPrice);
 		variant.setMrp(newMrp);
