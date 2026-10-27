@@ -1,9 +1,14 @@
+import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Provider } from 'react-redux'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as catalog from '../api/catalog'
+import authReducer from '../store/authSlice'
+import notificationsReducer from '../store/notificationsSlice'
+import wishlistReducer from '../store/wishlistSlice'
 import ProductsPage from './ProductsPage'
 
 vi.mock('../api/catalog')
@@ -13,10 +18,14 @@ const card = { id: 1, slug: 'volta-v12-5g', name: 'Volta V12 5G', brand: 'Volta'
   discountPercent: 10, imageUrl: null, inStock: true, sellerName: 'Chennai Mobiles', sellerSlug: 'chennai-mobiles', categorySlug: 'phones' }
 
 function renderAt(url) {
+  // the cards carry a heart, which reads the user and the wishlist from the store
+  const store = configureStore({ reducer: { auth: authReducer, wishlist: wishlistReducer, notifications: notificationsReducer } })
   return render(
-    <MemoryRouter initialEntries={[url]}>
-      <Routes><Route path="/products" element={<ProductsPage />} /></Routes>
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[url]}>
+        <Routes><Route path="/products" element={<ProductsPage />} /></Routes>
+      </MemoryRouter>
+    </Provider>,
   )
 }
 

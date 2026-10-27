@@ -12,6 +12,7 @@ import {
   ArrowLeftIcon, CartIcon, ChevronDownIcon, CloseIcon, GridIcon, LogoutIcon, MapPinIcon, MenuIcon, MoonIcon, PackageIcon, SearchIcon,
   StoreIcon, SunIcon, UserIcon,
 } from '../ui/icons'
+import HeartIcon from '../ui/HeartIcon'
 import Logo from './Logo'
 import NotificationBell from './NotificationBell'
 
@@ -144,6 +145,7 @@ function AccountMenu({ user }) {
         <div className="w-56">
           <p className="truncate px-3 pb-2 pt-1 text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           <Link to="/orders" className={menuItem} onClick={close}><PackageIcon className="h-4 w-4" /> My orders</Link>
+          <Link to="/wishlist" className={menuItem} onClick={close}><HeartIcon className="h-4 w-4" /> My wishlist</Link>
           <Link to="/account/returns" className={menuItem} onClick={close}><ArrowLeftIcon className="h-4 w-4" /> My returns</Link>
           <Link to="/account/addresses" className={menuItem} onClick={close}><MapPinIcon className="h-4 w-4" /> My addresses</Link>
           <Link to={shopLink} className={menuItem} onClick={close}><StoreIcon className="h-4 w-4" /> {shopLabel}</Link>
@@ -191,6 +193,7 @@ function MobileMenu({ user }) {
           <>
             <p className="px-3 pb-1 text-xs text-slate-500 dark:text-slate-400">Logged in as {user.email}</p>
             <Link to="/orders" className={link}>My orders</Link>
+            <Link to="/wishlist" className={link}>My wishlist</Link>
             <Link to="/account/returns" className={link}>My returns</Link>
             <Link to="/account/addresses" className={link}>My addresses</Link>
             <Link to={isActiveSeller(user) ? '/seller' : '/sell'} className={link}>{isActiveSeller(user) ? 'My shop' : user.seller ? 'My shop application' : 'Become a seller'}</Link>

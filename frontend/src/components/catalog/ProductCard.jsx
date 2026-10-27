@@ -1,15 +1,29 @@
 import { Link } from 'react-router-dom'
 
 import Badge from '../ui/Badge'
+import { Stars } from '../ui/StarRating'
+import WishlistButton from '../wishlist/WishlistButton'
 import { Skeleton } from '../ui/Loader'
 import PriceTag from './PriceTag'
 import ProductImage from './ProductImage'
 
-/** One tile of the product grid (API: ProductCard). The whole card is one link to the product page. */
+/**
+ * One tile of the product grid (API: ProductCard). The card is one link to the product page; the heart sits on
+ * top of it (a button may not be inside a link).
+ */
 export default function ProductCard({ product }) {
   return (
+    <div className="relative">
+      <CardLink product={product} />
+      <WishlistButton product={product} className="absolute right-5 top-5" />
+    </div>
+  )
+}
+
+function CardLink({ product }) {
+  return (
     <Link to={`/products/${product.slug}`}
-      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       <div className="relative">
         <ProductImage src={product.imageUrl} alt={product.name} categorySlug={product.categorySlug} brand={product.brand} />
         {!product.inStock && (
@@ -22,6 +36,11 @@ export default function ProductCard({ product }) {
       <div className="mt-1">
         <PriceTag price={product.priceFrom} mrp={product.mrpFrom} discountPercent={product.discountPercent} />
       </div>
+      {product.ratingCount > 0 && (
+        <p className="mt-1 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+          <Stars value={Number(product.ratingAvg)} /> {Number(product.ratingAvg).toFixed(1)} ({product.ratingCount})
+        </p>
+      )}
       <p className="mt-auto pt-1 text-xs text-slate-500 dark:text-slate-400">{product.sellerName}</p>
     </Link>
   )
