@@ -6,12 +6,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as catalog from '../api/catalog'
+import * as searchApi from '../api/search'
 import authReducer from '../store/authSlice'
 import notificationsReducer from '../store/notificationsSlice'
 import wishlistReducer from '../store/wishlistSlice'
 import ProductsPage from './ProductsPage'
 
 vi.mock('../api/catalog')
+vi.mock('../api/search')
 
 const page = (content) => ({ content, page: 0, size: 24, totalElements: content.length, totalPages: 1, first: true, last: true })
 const card = { id: 1, slug: 'volta-v12-5g', name: 'Volta V12 5G', brand: 'Volta', priceFrom: 12999, mrpFrom: 14499,
@@ -59,7 +61,8 @@ describe('ProductsPage', () => {
   })
 
   it('shows a friendly empty state with "Clear filters"', async () => {
-    catalog.fetchProducts.mockResolvedValue(page([]))
+    // words = the smart search API (Phase 10)
+    searchApi.searchProducts.mockResolvedValue({ results: page([]), facets: { brands: [], categories: [], prices: [] } })
     renderAt('/products?q=zzzz')
     expect(await screen.findByText('No products match')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Clear filters' })).toHaveAttribute('href', '/products')

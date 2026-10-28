@@ -57,6 +57,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/products/*/reviews/mine").authenticated()
 				// the shop window is public - anyone may BROWSE (GET only)
 				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
+				// Phase 10: searching and suggestions are part of the shop window too
+				.requestMatchers(HttpMethod.GET, "/api/search", "/api/search/**").permitAll()
 				// a guest's cart lives in the browser; the server only prices it (nothing is saved)
 				.requestMatchers(HttpMethod.POST, "/api/cart/preview").permitAll()
 				// the flash-sale pages can be looked at without logging in; claiming needs a login

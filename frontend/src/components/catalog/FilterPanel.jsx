@@ -42,6 +42,50 @@ function CategoryList({ tree, category }) {
   )
 }
 
+/**
+ * Phase 10, while searching: the categories THIS search found, with counts. A click narrows the search (the
+ * words stay); the normal category links would start a new, word-less list.
+ */
+function FoundIn({ categories, category, onChange }) {
+  const button = (active) =>
+    `block w-full rounded px-1 py-0.5 text-left text-sm ${active ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-600 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300'}`
+  return (
+    <ul className="space-y-0.5">
+      {category && (
+        <li><button type="button" className={button(false)} onClick={() => onChange({ category: '' })}>‹ All categories</button></li>
+      )}
+      {categories.map((c) => (
+        <li key={c.slug}>
+          <button type="button" className={button(c.slug === category)} aria-pressed={c.slug === category}
+            onClick={() => onChange({ category: c.slug })}>
+            {c.name} <span className="text-slate-400">({c.count})</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Phase 10, while searching: ready-made price bands with how many results each has. */
+function PriceBands({ bands, filters, onChange }) {
+  return (
+    <ul className="space-y-1">
+      {bands.map((b) => {
+        const active = filters.minPrice === b.min && filters.maxPrice === b.max
+        return (
+          <li key={b.label}>
+            <button type="button" disabled={b.count === 0 && !active} aria-pressed={active}
+              onClick={() => onChange(active ? { minPrice: null, maxPrice: null } : { minPrice: b.min, maxPrice: b.max })}
+              className={`text-sm disabled:opacity-40 ${active ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-600 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300'}`}>
+              {b.label} <span className="text-slate-400">({b.count})</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 /** Min / max price: typed freely, sent when "Apply" is pressed (not on every key). */
 function PriceRange({ minPrice, maxPrice, onChange }) {
   const [min, setMin] = useState(minPrice ?? '')
@@ -70,7 +114,8 @@ function PriceRange({ minPrice, maxPrice, onChange }) {
   )
 }
 
-export default function FilterPanel({ filters, tree, brands, onChange, idPrefix = '' }) {
+/** facets = the smart search's counts (Phase 10), or null while simply browsing. */
+export default function FilterPanel({ filters, tree, brands, facets = null, onChange, idPrefix = '' }) {
   const toggleBrand = (brand) => onChange({
     brands: filters.brands.includes(brand) ? filters.brands.filter((b) => b !== brand) : [...filters.brands, brand],
   })
@@ -78,7 +123,9 @@ export default function FilterPanel({ filters, tree, brands, onChange, idPrefix 
     <div className="space-y-6">
       <section className="space-y-2">
         <Heading>Category</Heading>
-        <CategoryList tree={tree} category={filters.category} />
+        {facets
+          ? <FoundIn categories={facets.categories} category={filters.category} onChange={onChange} />
+          : <CategoryList tree={tree} category={filters.category} />}
       </section>
 
       {brands.length > 0 && (
@@ -99,6 +146,7 @@ export default function FilterPanel({ filters, tree, brands, onChange, idPrefix 
 
       <section className="space-y-2">
         <Heading>Price</Heading>
+        {facets && <PriceBands bands={facets.prices} filters={filters} onChange={onChange} />}
         {/* key: when the URL changes (e.g. "Clear filters") the boxes show the new values */}
         <PriceRange key={`${filters.minPrice}-${filters.maxPrice}`} minPrice={filters.minPrice} maxPrice={filters.maxPrice} onChange={onChange} />
       </section>

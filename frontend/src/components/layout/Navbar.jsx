@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import useCategories from '../../hooks/useCategories'
 import useTheme from '../../hooks/useTheme'
@@ -9,10 +9,11 @@ import { firstName, isActiveSeller, isAdmin, logout, selectAuthStatus, selectUse
 import { selectCartCount } from '../../store/cartSlice'
 import { notify } from '../../store/notificationsSlice'
 import {
-  ArrowLeftIcon, CartIcon, ChevronDownIcon, CloseIcon, GridIcon, LogoutIcon, MapPinIcon, MenuIcon, MoonIcon, PackageIcon, SearchIcon,
+  ArrowLeftIcon, CartIcon, ChevronDownIcon, CloseIcon, GridIcon, LogoutIcon, MapPinIcon, MenuIcon, MoonIcon, PackageIcon,
   StoreIcon, SunIcon, UserIcon,
 } from '../ui/icons'
 import HeartIcon from '../ui/HeartIcon'
+import SearchBox from '../search/SearchBox'
 import Logo from './Logo'
 import NotificationBell from './NotificationBell'
 
@@ -33,28 +34,6 @@ function ThemeToggle() {
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'} title={dark ? 'Light mode' : 'Dark mode'}>
       {dark ? <SunIcon /> : <MoonIcon />}
     </button>
-  )
-}
-
-/** Sends the words to /products?q=... (the listing page does the searching). */
-function SearchBox({ className = '' }) {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const location = useLocation()
-  // show the current search while on the listing; empty elsewhere
-  const current = location.pathname === '/products' ? params.get('q') ?? '' : ''
-  return (
-    <form role="search" className={`relative ${className}`} key={current}
-      onSubmit={(e) => {
-        e.preventDefault()
-        const q = new FormData(e.currentTarget).get('q').trim()
-        navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
-      }}>
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      <input type="search" name="q" defaultValue={current} placeholder="Search for products, brands and more"
-        aria-label="Search products" enterKeyHint="search"
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm placeholder:text-slate-500 focus:border-brand-600 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:placeholder:text-slate-400" />
-    </form>
   )
 }
 

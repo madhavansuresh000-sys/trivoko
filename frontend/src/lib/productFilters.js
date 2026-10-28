@@ -8,6 +8,7 @@
  *    +------ toSearchParams ----+   (when the customer ticks a box)
  *
  * People count pages from 1, the API from 0. Bad values (an old or hand-edited link) fall back to the defaults.
+ * Phase 10: with search words (q) the page asks the smart search API, and the default sort is "best match".
  */
 
 export const PAGE_SIZE = 24
@@ -24,7 +25,10 @@ export const DEFAULT_FILTERS = Object.freeze({
   page: 1,
 })
 
-const SORTS = ['newest', 'price']
+const SORTS = ['relevance', 'newest', 'price']
+
+/** With search words the best match comes first; without them (no relevance to rank by), the newest. */
+export const defaultSort = (q) => (q ? 'relevance' : 'newest')
 const DIRS = ['asc', 'desc']
 
 /** A price must be a number >= 0; anything else = no price filter. */
@@ -36,14 +40,16 @@ function price(value) {
 
 export function parseFilters(params) {
   const page = Number(params.get('page'))
+  const q = (params.get('q') ?? '').trim()
+  const sort = params.get('sort')
   return {
-    q: (params.get('q') ?? '').trim(),
+    q,
     category: params.get('category') ?? '',
     brands: params.getAll('brand').filter(Boolean),
     minPrice: price(params.get('minPrice')),
     maxPrice: price(params.get('maxPrice')),
     inStock: params.get('inStock') === 'true',
-    sort: SORTS.includes(params.get('sort')) ? params.get('sort') : DEFAULT_FILTERS.sort,
+    sort: SORTS.includes(sort) && (sort !== 'relevance' || q) ? sort : defaultSort(q),
     dir: DIRS.includes(params.get('dir')) ? params.get('dir') : DEFAULT_FILTERS.dir,
     page: Number.isInteger(page) && page >= 1 ? page : 1,
   }
@@ -58,7 +64,7 @@ export function toSearchParams(filters) {
   if (filters.minPrice !== null) p.set('minPrice', String(filters.minPrice))
   if (filters.maxPrice !== null) p.set('maxPrice', String(filters.maxPrice))
   if (filters.inStock) p.set('inStock', 'true')
-  if (filters.sort !== DEFAULT_FILTERS.sort) p.set('sort', filters.sort)
+  if (filters.sort !== defaultSort(filters.q)) p.set('sort', filters.sort)
   if (filters.dir !== DEFAULT_FILTERS.dir) p.set('dir', filters.dir)
   if (filters.page > 1) p.set('page', String(filters.page))
   return p

@@ -8,7 +8,13 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 
+import com.trivoko.search.SearchAnalysis;
 import com.trivoko.seller.Seller;
 
 import jakarta.persistence.CascadeType;
@@ -34,8 +40,13 @@ import lombok.Setter;
  * A product page, e.g. "Volta V12 5G" sold by Chennai Mobiles.
  * The things you actually buy are its variants (Black / 128 GB, Blue / 256 GB ...),
  * because each one has its own price and stock.
+ * <p>
+ * Phase 10: @Indexed = its WORDS are also kept in the Lucene search index (name, brand, description, category name).
+ * Prices, stock and shop status are NOT - they change through bulk updates Lucene never hears about, so the search
+ * module filters those in MySQL (decision D11).
  */
 @Entity
+@Indexed
 @Table(name = "products")
 @Getter
 @Setter
@@ -50,20 +61,30 @@ public class Product {
 	@JoinColumn(name = "seller_id")
 	private Seller seller;
 
-	/** Always a sub-category (e.g. "Mobiles"), never a top category. */
+	/**
+	 * Always a sub-category (e.g. "Mobiles"), never a top category. Its name is searchable; a renamed category reaches
+	 * the index at the next start (SHALLOW: only moving the product to another category re-indexes it at once).
+	 */
+	@IndexedEmbedded(includePaths = "name")
+	@IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "category_id")
 	private Category category;
 
+	@FullTextField(analyzer = SearchAnalysis.TEXT)
+	@FullTextField(name = "name_suggest", analyzer = SearchAnalysis.AUTOCOMPLETE, searchAnalyzer = SearchAnalysis.TEXT)
 	@Column(nullable = false, length = 200)
 	private String name;
 
 	@Column(nullable = false, unique = true, length = 220)
 	private String slug;
 
+	@FullTextField(analyzer = SearchAnalysis.TEXT)
+	@FullTextField(name = "brand_suggest", analyzer = SearchAnalysis.AUTOCOMPLETE, searchAnalyzer = SearchAnalysis.TEXT)
 	@Column(nullable = false, length = 80)
 	private String brand;
 
+	@FullTextField(analyzer = SearchAnalysis.TEXT)
 	@Column(columnDefinition = "TEXT")
 	private String description;
 

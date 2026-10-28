@@ -50,6 +50,10 @@ public class MySqlTestDatabase implements ApplicationContextInitializer<Configur
 				// tests never email anyone: port 1 is closed, so a send fails at once (OrderEmailsTest mocks the sender)
 				"spring.mail.host", "localhost",
 				"spring.mail.port", "1")));
+		// Phase 10: each test context keeps its search index in memory (nothing written to disk).
+		// (A second property source: Map.of above already holds its maximum of 10 pairs.)
+		context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test-search-index", Map.of(
+				"spring.jpa.properties.hibernate.search.backend.directory.type", "local-heap")));
 	}
 
 }

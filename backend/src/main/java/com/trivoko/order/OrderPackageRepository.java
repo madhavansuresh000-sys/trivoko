@@ -24,6 +24,20 @@ public interface OrderPackageRepository extends JpaRepository<OrderPackage, Long
 	boolean existsWithItem(@Param("userId") Long userId, @Param("status") PackageStatus status,
 			@Param("variantIds") Collection<Long> variantIds);
 
+	/**
+	 * Phase 10 "also bought": the OTHER variants that were in the same orders (with this status) as any of these
+	 * variants, ranked by how many orders they shared. (Two lines of one order may sit in different packages.)
+	 */
+	@Query("""
+			select other.variantId from OrderItem mine join mine.orderPackage mp join mp.order o,
+				OrderItem other join other.orderPackage op
+			where op.order = o and o.status = :status
+				and mine.variantId in :variantIds and other.variantId not in :variantIds
+			group by other.variantId
+			order by count(distinct o.id) desc, other.variantId""")
+	java.util.List<Long> boughtTogether(@Param("variantIds") Collection<Long> variantIds,
+			@Param("status") OrderStatus status, Pageable page);
+
 	long countBySellerIdAndStatus(Long sellerId, PackageStatus status);
 
 	/** Sales chart: my packages placed since this time, in these statuses. */
