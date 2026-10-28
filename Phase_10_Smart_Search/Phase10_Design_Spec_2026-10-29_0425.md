@@ -69,6 +69,10 @@ after **2 letters** (shorter -> empty list), only live products, cached nowhere 
 
 ## 6. Frontend (step 5)
 
+> **Changed while building (29 Oct):** no separate `/search` page - `/products?q=...` switches to the smart search
+> API whenever there are words. It already keeps every filter in the URL (Back, refresh, shared links), so the
+> search gets that for free; the panel then shows the search's own counts and the sort gets "Best match".
+
 - The navbar search box shows a suggestion list while typing: **debounce 250 ms**, arrow keys + Enter + Escape,
   `role="combobox"` / `listbox` for screen readers; a product suggestion opens the product, a brand opens
   `/search?brand=...`, Enter opens `/search?q=...`.

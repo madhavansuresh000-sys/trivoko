@@ -204,3 +204,27 @@ the wishlist and the alert talk about the same price the customer saw.
 `order_items` from the review module). Returned items still count. One review per customer per product (UNIQUE
 key); writing again edits it. The average and count are stored on `products` so cards need no extra query.
 
+## D11 - Smart search: Lucene inside the app; it finds and ranks, MySQL filters and counts (Phase 10, 29 Oct 2026) - DRAFT
+
+**Status: draft by Claude - the Phase Plan says "decide together"; MADHAVAN confirms or changes it.**
+
+**Split of work.** Lucene (Hibernate Search 8.4, D1) only answers "which products match these words, best first"
+(top 500 ids). MySQL then keeps the live, in-stock, category / brand / price matches and the page and counts are made
+from those rows. Reason: stock changes through bulk `UPDATE ... stock = stock - ?` (checkout, flash sale) and a shop
+is blocked on the `sellers` row - Hibernate Search never sees either, so filters kept in the index would go stale.
+Text only changes through normal saves, which Hibernate Search re-indexes at once (`synchronization.strategy: sync`).
+Limit: only the best 500 matches are filtered - far above TriVoKo's 120 products.
+
+**Keep Lucene or fall back to MySQL FULLTEXT for hosting?** Suggestion: **keep Lucene.** It runs inside the same Java
+process (no search server to pay for), the index is rebuilt from MySQL on every start (so a hosting platform's
+temporary disk is fine), and typo tolerance is the whole point of standout #4 - MySQL FULLTEXT cannot forgive
+"iphnoe". If the app ever runs as several copies, each copy keeps its own index (rebuilt on start; edits made on one
+copy reach the others at their next start) - acceptable for a portfolio shop; a shared Elasticsearch would be the
+next step, not FULLTEXT.
+
+**Typo rules.** By word length (exact up to 4 letters, 1 typo from 5, 2 from 8), first letter fixed, exact matches
+boosted - the D1 spike showed plain "distance 2" lets "iphnoe" match "phone". Tests check the ranking.
+
+**Also bought** is plain SQL over paid orders in the order module, cached 1 hour (its own Caffeine cache; the rest
+keep 60 s). Only the ranked ids are cached; cards are built fresh, so prices are never an hour old.
+

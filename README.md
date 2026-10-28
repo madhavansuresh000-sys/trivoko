@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 9 - Reviews, wishlist & price-drop alerts** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units under a 5,000-user k6 load (Phase 7); a delivered item can be returned for exactly what was paid (Phase 8). Now only customers who received a product can review it, anyone can save products to a wishlist, and a price drop sends ONE alert - not five when the seller edits the price five times.
+> **Status: Phase 10 - Smart search** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units (Phase 7); a delivered item can be returned for exactly what was paid (Phase 8); verified-buyer reviews, a wishlist and ONE alert per real price drop (Phase 9). Now search forgives typos ("iphnoe" finds the iPhone case first), suggests while you type, counts results per brand, category and price, and shows what customers also bought.
 
 ## What it will do
 
@@ -117,6 +117,37 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 (approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
+
+### Smart search (Phase 10)
+
+A good shop assistant understands "iphnoe" means iPhone, and says "we have 3 cases and 2 chargers" before you ask.
+
+```
+ "iphnoe case" --> Lucene index (inside the app; name, brand, category name, description)
+                   typo-tolerant, best match first --> up to 500 product ids
+                                                           |
+ MySQL <---------------------------------------------------+
+   live? in stock? category / brand / price?   (always fresh - stock moves by bulk UPDATEs Lucene never sees)
+   --> one page in Lucene's order + counts per brand, category and price band
+```
+
+| URL | Who | What it does |
+|---|---|---|
+| `GET /api/search?q=&category=&brand=&minPrice=&maxPrice=&inStock=&sort=relevance\|price\|newest&page=` | anyone | Results (cards) + facets: brands, categories, price bands, each counted without its own tick |
+| `GET /api/search/suggest?q=` | anyone | From 2 letters: up to 8 suggestions, brands first, then products (live shops only) |
+| `GET /api/products/{slug}/also-bought` | anyone | Up to 6 products from the same PAID orders, most often first (ranking cached 1 hour) |
+
+How it stays sensible:
+
+- **Typos by word length**: 1-4 letters exact (or the start of a word), 5-7 letters 1 typo, 8+ letters 2 typos, and
+  the first letter must be right - so "iphnoe" finds the iPhone case but never drags in "Mobile phones"
+  (`SmartSearchTest` checks the ranking, not only the hit list). Exact words count 4x, the name more than the brand.
+- **Analyzers** (`SearchAnalysis`): lower-case + accents removed; suggestions use edge n-grams ("vol" -> Volta).
+- **Index rebuilt on every start** (`SearchIndexer`, 120 products in ~0.3 s); folder `SEARCH_INDEX_DIR`
+  (default `../data/search-index`, git-ignored); tests keep it in memory. A saved product is re-indexed at once.
+- **Pages**: the navbar box suggests while typing (250 ms pause, arrow keys, Enter, Esc, ARIA combobox);
+  `/products?q=...` uses the smart search with "Best match" and the counts; the product page shows
+  "Customers also bought" when there are at least 2. Decision: D11 (draft - to be agreed).
 
 ### Reviews, wishlist & price-drop alerts (Phase 9)
 
