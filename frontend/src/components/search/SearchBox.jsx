@@ -80,7 +80,12 @@ function Combobox({ initial, className }) {
 
   const keys = (e) => {
     if (e.key === 'Escape') {
-      close()
+      // a real browser CLEARS a search box on Escape; while the list is open, Escape should only close the list
+      // and keep the words (found in the browser check - jsdom in the tests does not clear). Closed list = clear.
+      if (open) {
+        e.preventDefault()
+        close()
+      }
     } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && suggestions.length > 0) {
       e.preventDefault()
       setOpen(true)
@@ -99,7 +104,8 @@ function Combobox({ initial, className }) {
         placeholder="Search for products, brands and more" aria-label="Search products" enterKeyHint="search"
         role="combobox" aria-autocomplete="list" aria-expanded={showList} aria-controls={listId}
         aria-activedescendant={showList && active >= 0 ? optionId(active) : undefined} autoComplete="off"
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm placeholder:text-slate-500 focus:border-brand-600 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:placeholder:text-slate-400" />
+        // dark mode: the focused box stays dark (focus:bg-white + light text made the typed words invisible)
+        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-500 focus:border-brand-600 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:bg-slate-950" />
       {showList && (
         <ul id={listId} role="listbox" aria-label="Suggestions"
           className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
