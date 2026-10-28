@@ -29,6 +29,7 @@ import com.trivoko.catalog.dto.LowStockView;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
 import com.trivoko.catalog.dto.ProductRef;
+import com.trivoko.catalog.dto.SearchRow;
 import com.trivoko.catalog.dto.SellerProductRequest;
 import com.trivoko.catalog.dto.SellerProductView;
 import com.trivoko.catalog.dto.SellerVariantRequest;
@@ -254,6 +255,18 @@ public class ProductService {
 			.map(p -> new ProductRef(p.getId(), p.getName(), p.getSlug(),
 					p.getVariants().stream().map(ProductVariant::getId).toList()))
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Search (Phase 10): the LIVE ones among these products, read from MySQL now (fresh stock, shop status). */
+	public List<SearchRow> searchRows(Collection<Long> productIds) {
+		return productIds.isEmpty() ? List.of() : products.searchRows(productIds);
+	}
+
+	/** Search: cards for these products in exactly this order (the order of relevance). */
+	public List<ProductCard> cardsInOrder(List<Long> productIds) {
+		Map<Long, ProductCard> byId = products.findAllById(productIds).stream()
+			.collect(Collectors.toMap(Product::getId, CatalogMapper::toCard));
+		return productIds.stream().map(byId::get).filter(Objects::nonNull).toList();
 	}
 
 	/** Wishlist "add": the live product as a card (not live = "not found"). */
