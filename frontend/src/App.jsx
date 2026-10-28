@@ -43,6 +43,9 @@ const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'))
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'))
 const AdminFlashSalesPage = lazy(() => import('./pages/admin/AdminFlashSalesPage'))
 const SellerFlashPage = lazy(() => import('./pages/seller/SellerFlashPage'))
+const MyReturnsPage = lazy(() => import('./pages/MyReturnsPage'))
+const SellerReturnsPage = lazy(() => import('./pages/seller/SellerReturnsPage'))
+const AdminReturnsPage = lazy(() => import('./pages/admin/AdminReturnsPage'))
 
 export default function App() {
   const dispatch = useDispatch()
@@ -73,10 +76,13 @@ export default function App() {
           <Route path="payment/cancelled" element={<PaymentResultPage cancelled />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:number" element={<OrderDetailPage />} />
+          <Route path="account/returns" element={<MyReturnsPage />} />
+          <Route path="account/returns/:id" element={<MyReturnsPage />} />
           {/* the seller back office (Phase 5); SellerLayout shows "become a seller" to everyone else */}
           <Route path="seller" element={<SellerLayout />}>
             <Route index element={<SellerDashboardPage />} />
             <Route path="orders" element={<SellerPackagesPage />} />
+            <Route path="returns" element={<SellerReturnsPage />} />
             <Route path="products" element={<SellerProductsPage />} />
             <Route path="products/new" element={<ProductEditorPage />} />
             <Route path="products/:id" element={<ProductEditorPage />} />
@@ -91,6 +97,7 @@ export default function App() {
             <Route path="products" element={<AdminProductsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="returns" element={<AdminReturnsPage />} />
             <Route path="coupons" element={<AdminCouponsPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="flash" element={<AdminFlashSalesPage />} />

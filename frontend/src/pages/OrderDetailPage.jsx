@@ -3,8 +3,11 @@ import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 
 import { cancelOrderPackage, fetchOrder } from '../api/orders'
+import { fetchMyReturns } from '../api/returns'
 import { OrderStatusBadge, PackageStatusBadge } from '../components/order/OrderBits'
 import PackageTimeline from '../components/order/PackageTimeline'
+import { ReturnStatusBadge } from '../components/returns/ReturnBits'
+import ReturnRequestDialog from '../components/returns/ReturnRequestDialog'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
@@ -17,6 +20,11 @@ import { formatRupees } from '../lib/money'
 import { notify } from '../store/notificationsSlice'
 import NotFoundPage from './NotFoundPage'
 
+/** A delivered item may be returned for 7 days (the server checks again). */
+const RETURN_DAYS = 7
+const canStillReturn = (pkg) =>
+  pkg.status === 'DELIVERED' && pkg.deliveredAt && Date.now() - new Date(pkg.deliveredAt).getTime() < RETURN_DAYS * 86400000
+
 /** One order: its packages (one per seller), items, amounts and the delivery address. */
 export default function OrderDetailPage() {
   const { number } = useParams()
@@ -25,6 +33,16 @@ export default function OrderDetailPage() {
   const { data: o, loading, error } = useAsync(() => fetchOrder(number), [number, reload])
   const [cancelling, setCancelling] = useState(null) // the package being cancelled (asks first)
   const [busy, setBusy] = useState(false)
+  const [returning, setReturning] = useState(null) // the item in the "Return this item" dialog
+  // which lines already have a return (one per line); a failure here only hides the badges
+  const { data: myReturns } = useAsync(() => fetchMyReturns().catch(() => []), [reload])
+  const returnOf = (itemId) => (myReturns ?? []).find((r) => r.orderItemId === itemId)
+
+  const returnAsked = () => {
+    setReturning(null)
+    dispatch(notify('Return requested - the seller has 2 days to answer.'))
+    setReload((r) => r + 1)
+  }
 
   const confirmCancel = async () => {
     setBusy(true)
@@ -82,7 +100,16 @@ export default function OrderDetailPage() {
                   <Link to={`/products/${it.productSlug}`} className="font-medium text-slate-900 hover:underline dark:text-white">{it.productName}</Link>
                   <span className="block text-slate-500 dark:text-slate-400">{it.variantLabel} · {formatRupees(it.unitPrice)} × {it.quantity}</span>
                 </span>
-                <span className="shrink-0 font-medium">{formatRupees(it.lineTotal)}</span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="font-medium">{formatRupees(it.lineTotal)}</span>
+                  {returnOf(it.id) ? (
+                    <Link to={`/account/returns/${returnOf(it.id).id}`} aria-label={`Return of ${it.productName}`}>
+                      <ReturnStatusBadge status={returnOf(it.id).status} />
+                    </Link>
+                  ) : canStillReturn(p) && (
+                    <Button size="sm" variant="ghost" onClick={() => setReturning(it)}>Return</Button>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
@@ -112,6 +139,8 @@ export default function OrderDetailPage() {
         </>}>
         <p>{cancelling?.sellerName} will not ship it, and {cancelling ? formatRupees(cancelling.total) : ''} goes back to your payment method. Your other packages are not affected.</p>
       </Modal>
+
+      <ReturnRequestDialog item={returning} onClose={() => setReturning(null)} onDone={returnAsked} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="p-4 text-sm">

@@ -16,6 +16,7 @@ const LINKS = [
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/orders', label: 'Orders' },
+  { to: '/admin/returns', label: 'Returns' },
   { to: '/admin/coupons', label: 'Coupons' },
   { to: '/admin/reports', label: 'Reports' },
   { to: '/admin/flash', label: 'Flash sales' },

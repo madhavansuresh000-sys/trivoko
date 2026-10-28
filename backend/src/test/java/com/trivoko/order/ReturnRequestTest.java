@@ -112,6 +112,9 @@ class ReturnRequestTest {
 			.andExpect(jsonPath("$.status").value("REQUESTED"))
 			.andExpect(jsonPath("$.events.length()").value(1))
 			.andExpect(jsonPath("$.events[0].actor").value("CUSTOMER"))
+			.andExpect(jsonPath("$.sellerName").value("Kovai Sports")) // V11: a copy of the bill line
+			.andExpect(jsonPath("$.productName").isNotEmpty())
+			.andExpect(jsonPath("$.orderNumber").isNotEmpty())
 			.andReturn().getResponse().getContentAsString();
 
 		assertThat(new BigDecimal(JsonPath.read(json, "$.refundAmount").toString())).isEqualByComparingTo(paid);

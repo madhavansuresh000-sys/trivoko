@@ -161,3 +161,26 @@ is everyone waiting in line for one hot row on a single laptop that also runs k6
 right. **Decision: keep MySQL only for now** (one fewer service to host, no second copy of the stock that could drift).
 **Still to do together:** run the `ceiling` shape (5,000 at `/api/health`) to see how much of the 1 s is the laptop
 itself; only if the claim is clearly slower than that ceiling, build the Redis `DECR` version and record both graphs.
+
+## D9 - Returns: a state machine, money fixed at asking, refund in its own transaction (Phase 8, 22 Oct 2026)
+
+**One door.** Every return move goes through `ReturnService.moveTo`, which asks `ReturnStatus.allowedNext()` and then
+`saveAndFlush`es with `@Version`. "Escalate once" needs no flag: ESCALATED never leads back to REJECTED.
+
+**Whole line, amount fixed when asked.** A return covers one order line (UNIQUE `order_item_id`) and its refund is
+`line_total - discount_share`, copied onto the return when the customer asks - later price or coupon changes cannot
+move it. Returning "1 of 3 identical items" and refunding delivery were left out on purpose (more maths, little to
+learn); both are easy to add on top.
+
+**The refund is its own transaction.** `ReturnPickup` is not transactional: PICKED_UP is saved first (the item really
+is with the seller), then `ReturnService.refund` does REFUNDED + Stripe + stock + ledger + bell all-or-nothing. A
+Stripe error thrown through a joined transaction would mark the whole thing rollback-only, so the failure is caught
+outside and REFUND_FAILED is written in a fresh transaction. Retries reuse the key `refund-return-<id>`.
+
+**Ledger key change (V10).** V7's `UNIQUE (package_id, kind)` allowed one REFUND per package; it is now
+`UNIQUE (package_id, kind, once_key)` with `once_key = COALESCE(return_id, 0)` - MySQL treats NULLs in a unique key
+as all different, so SALE lines (no return) use 0 and still cannot repeat.
+
+**Snapshot (V11).** A return copies order number, product, variant, quantity and shop from the bill, like
+`order_items` itself, so the seller and admin lists need no lookups per row.
+

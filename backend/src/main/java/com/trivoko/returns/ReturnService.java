@@ -108,6 +108,7 @@ public class ReturnService {
 		}
 		ReturnRequest ret = new ReturnRequest(line.orderItemId(), line.packageId(), line.orderId(), customerId,
 				line.sellerId(), req.reason(), req.note().trim(), photo, line.refundAmount());
+		ret.describe(line.orderNumber(), line.productName(), line.variantLabel(), line.quantity(), line.sellerName());
 		ret.addEvent(ReturnStatus.REQUESTED, ReturnEvent.Actor.CUSTOMER, req.note().trim());
 		return ReturnView.of(returns.saveAndFlush(ret));
 	}
