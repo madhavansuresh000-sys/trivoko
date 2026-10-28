@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.search.dto.SearchDtos.SearchQuery;
 import com.trivoko.search.dto.SearchDtos.SearchResult;
+import com.trivoko.search.dto.SearchDtos.Suggestion;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,6 +49,12 @@ public class SearchController {
 		}
 		return search.search(new SearchQuery(q, category, brands, minPrice, maxPrice, inStock, sort, dir), page,
 				Math.clamp(size, 1, MAX_PAGE_SIZE));
+	}
+
+	@GetMapping("/suggest")
+	@Operation(summary = "Suggestions while typing (from 2 letters, at most 8): brands first, then products")
+	public List<Suggestion> suggest(@Parameter(example = "vol") @RequestParam(required = false) String q) {
+		return search.suggest(q);
 	}
 
 }

@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.hibernate.search.engine.search.predicate.SearchPredicate;
 import org.hibernate.search.engine.search.predicate.dsl.BooleanPredicateClausesStep;
@@ -33,6 +34,7 @@ import com.trivoko.search.dto.SearchDtos.Facets;
 import com.trivoko.search.dto.SearchDtos.PriceBand;
 import com.trivoko.search.dto.SearchDtos.SearchQuery;
 import com.trivoko.search.dto.SearchDtos.SearchResult;
+import com.trivoko.search.dto.SearchDtos.Suggestion;
 import com.trivoko.search.dto.SearchDtos.ValueCount;
 
 import jakarta.persistence.EntityManager;
@@ -56,6 +58,16 @@ public class SearchService {
 	static final int MAX_MATCHES = 500;
 
 	private static final int MAX_WORDS = 8;
+
+	/** Suggestions start at the 2nd letter: after 1 letter almost everything matches. */
+	static final int MIN_SUGGEST_LETTERS = 2;
+
+	static final int MAX_SUGGESTIONS = 8;
+
+	private static final int MAX_BRAND_SUGGESTIONS = 3;
+
+	/** Look at a few more than 8 products: some may belong to a blocked shop and drop out. */
+	private static final int SUGGEST_LOOKUP = 30;
 
 	/** The price filter's ready-made bands. Prices have 2 decimals, so 499.99 closes the first band. */
 	private static final List<PriceBand> BANDS = List.of(
@@ -99,6 +111,41 @@ public class SearchService {
 		List<ProductCard> cards = productService.cardsInOrder(pageIds);
 		return new SearchResult(PageResponse.from(new PageImpl<>(cards, PageRequest.of(page, size), results.size()),
 				Function.identity()), facets);
+	}
+
+	/**
+	 * Suggestions while typing (Phase 10 step 4), from the 2nd letter: every typed word must be the START of a word
+	 * in the name or brand ("vol" -> Volta, "silicone ca" -> Silicone case ...). No typo forgiveness here - while
+	 * you are still typing, the word is not finished yet. Brands first (at most 3), then products; 8 lines in all.
+	 */
+	public List<Suggestion> suggest(String typed) {
+		List<String> words = wordsOf(typed);
+		if (words.isEmpty() || String.join("", words).length() < MIN_SUGGEST_LETTERS) {
+			return List.of();
+		}
+		List<Long> ids = Search.session(em).search(Product.class)
+			.select(f -> f.id(Long.class))
+			.where(f -> {
+				BooleanPredicateClausesStep<?, ?> all = f.bool();
+				words.forEach(word -> all.must(f.match().field("name_suggest").boost(2f).field("brand_suggest").matching(word)));
+				return all;
+			})
+			.fetchHits(SUGGEST_LOOKUP);
+		// only live products (and so only brands that still have one); a blocked shop's products never show
+		Set<Long> live = productService.searchRows(ids).stream().map(SearchRow::id).collect(Collectors.toSet());
+		List<ProductCard> cards = productService.cardsInOrder(ids.stream().filter(live::contains).toList());
+
+		String first = words.getFirst();
+		List<Suggestion> brands = cards.stream().map(ProductCard::brand).distinct()
+			.filter(b -> b.toLowerCase(Locale.ROOT).startsWith(first) && words.size() == 1)
+			.limit(MAX_BRAND_SUGGESTIONS)
+			.map(b -> new Suggestion("brand", b, null))
+			.toList();
+		List<Suggestion> products = cards.stream()
+			.limit(MAX_SUGGESTIONS - brands.size())
+			.map(c -> new Suggestion("product", c.name(), c.slug()))
+			.toList();
+		return Stream.concat(brands.stream(), products.stream()).toList();
 	}
 
 	/** "  iPhnoe   CASE " -> [iphnoe, case] (at most 8 words, so nobody can send a 5,000-word "search"). */
