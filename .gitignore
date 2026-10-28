@@ -14,6 +14,9 @@ coverage/
 e2e/test-results/
 e2e/playwright-report/
 
+# ---- Phase 10 search index (rebuilt from the database on every start) ----
+data/
+
 # ---- Secrets: never push passwords or keys ----
 .env
 .env.*

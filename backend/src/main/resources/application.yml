@@ -21,6 +21,12 @@ spring:
     properties:
       # load lazy lists (variants, images ...) for up to 50 products in ONE query, not one query each (N+1)
       hibernate.default_batch_fetch_size: 50
+      # Phase 10 smart search: a Lucene index inside the app (rebuilt on every start by SearchIndexer)
+      hibernate.search.backend.lucene_version: 9.12.3
+      hibernate.search.backend.analysis.configurer: class:com.trivoko.search.SearchAnalysis
+      hibernate.search.backend.directory.root: ${app.search.index-dir}
+      # "sync" = a saved product is searchable the moment the save returns (fine for a shop's write volume)
+      hibernate.search.indexing.plan.synchronization.strategy: sync
   datasource:
     hikari:
       maximum-pool-size: 40     # database connections shared by the 200 request threads (MySQL allows 151)
@@ -52,6 +58,9 @@ springdoc:
     path: /swagger-ui.html
 
 app:
+  # Phase 10: where the search index files go (a folder you may delete at any time - it is rebuilt on start)
+  search:
+    index-dir: ${SEARCH_INDEX_DIR:../data/search-index}
   # Phase 7 flash sale: how long a claimed unit is kept for checkout, how often the job runs, and "slow down" limits
   flash:
     hold-time: 10m

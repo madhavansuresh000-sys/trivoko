@@ -3,6 +3,10 @@ package com.trivoko.catalog;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+
+import com.trivoko.search.SearchAnalysis;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -33,6 +37,8 @@ public class Category {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	/** Searchable (Phase 10): "mobile phones" finds the products of this category. */
+	@FullTextField(analyzer = SearchAnalysis.TEXT)
 	@Column(nullable = false, length = 80)
 	private String name;
 
