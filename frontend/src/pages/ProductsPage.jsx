@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { fetchBrands, fetchProducts } from '../api/catalog'
+import { searchProducts } from '../api/search'
 import FilterPanel from '../components/catalog/FilterPanel'
 import { ProductGrid } from '../components/catalog/ProductCard'
 import Button from '../components/ui/Button'
@@ -17,7 +18,11 @@ import { activeFilterCount, parseFilters, toApiParams, toSearchParams } from '..
 /**
  * The product list (sketch 2). Everything the customer chooses is written to the URL; the page only
  * reads the URL (lib/productFilters), so Back, Forward, refresh and shared links all show the same list.
+ * Phase 10: with search words the list comes from the smart search API (typos forgiven, best match first), and
+ * the filter panel shows the search's own counts ("Mobile phones (8)", price bands).
  */
+
+const BEST_MATCH = { value: 'relevance|asc', label: 'Best match' }
 
 const SORTS = [
   { value: 'newest|asc', label: 'Newest first' },
@@ -64,9 +69,16 @@ export default function ProductsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [retry, setRetry] = useState(0)
 
+  const searching = Boolean(filters.q)
   const key = toApiParams(filters).toString()
-  const { data, loading, error } = useAsync(() => fetchProducts(toApiParams(filters)), [key, retry])
-  const { data: brands } = useAsync(() => fetchBrands(filters.category).catch(() => []), [filters.category])
+  const { data: answer, loading, error } = useAsync(
+    () => (searching ? searchProducts(toApiParams(filters)) : fetchProducts(toApiParams(filters))), [key, retry])
+  const data = searching ? answer?.results : answer
+  const facets = searching ? answer?.facets : null
+  const { data: shopBrands } = useAsync(
+    () => (searching ? Promise.resolve([]) : fetchBrands(filters.category).catch(() => [])), [filters.category, searching])
+  // searching: the brands of THIS search with their counts; browsing: every brand of the category
+  const brands = facets ? facets.brands.map((b) => ({ brand: b.value, count: b.count })) : shopBrands
 
   /** Any change goes to the URL; a new filter starts again at page 1. */
   const update = (change) => {
@@ -81,7 +93,7 @@ export default function ProductsPage() {
   const status = describeError(error)
 
   const panel = (prefix) => (
-    <FilterPanel filters={filters} tree={tree} brands={brands ?? []} onChange={update} idPrefix={prefix} />
+    <FilterPanel filters={filters} tree={tree} brands={brands ?? []} facets={facets} onChange={update} idPrefix={prefix} />
   )
 
   return (
@@ -107,7 +119,7 @@ export default function ProductsPage() {
             <select id="sort" value={sortValue}
               onChange={(e) => { const [sort, dir] = e.target.value.split('|'); update({ sort, dir }) }}
               className="rounded-lg border border-slate-300 bg-white py-1.5 pl-3 pr-8 text-sm dark:border-slate-700 dark:bg-slate-900">
-              {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {(searching ? [BEST_MATCH, ...SORTS] : SORTS).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
         </div>
@@ -126,7 +138,7 @@ export default function ProductsPage() {
           )
         ) : !loading && data?.content.length === 0 ? (
           <EmptyState icon={SearchIcon} title="No products match"
-            message="Try fewer filters or another word. Typo-tolerant search is coming soon."
+            message={searching ? 'Check the spelling, or try fewer or different words.' : 'Try fewer filters or another word.'}
             action={<Button to="/products">Clear filters</Button>} />
         ) : (
           <ProductGrid products={data?.content ?? []} loading={loading} skeletons={8} />

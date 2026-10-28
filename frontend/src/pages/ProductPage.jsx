@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 
 import { fetchProduct } from '../api/catalog'
+import AlsoBought from '../components/catalog/AlsoBought'
 import PriceTag from '../components/catalog/PriceTag'
 import ProductImage from '../components/catalog/ProductImage'
 import ProductReviews from '../components/review/ProductReviews'
@@ -213,6 +214,7 @@ export default function ProductPage() {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">About this product</h2>
         <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">{product.description}</p>
       </section>
+      <AlsoBought slug={product.slug} />
       <ProductReviews slug={product.slug} />
     </div>
   )
