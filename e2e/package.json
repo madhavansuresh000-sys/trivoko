@@ -1,0 +1,14 @@
+{
+  "name": "trivoko-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Phase 11: the TriVoKo demo story as a Playwright end-to-end test",
+  "scripts": {
+    "db:up": "node db.js up",
+    "db:down": "node db.js down",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}

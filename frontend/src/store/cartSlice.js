@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit'
 
 import { deleteCartItem, fetchCart, mergeCart, previewCart, putCartItem } from '../api/cart'
 import { describeError } from '../hooks/useAsync'
@@ -113,4 +113,11 @@ export default cartSlice.reducer
 export const selectCart = (state) => state.cart
 export const selectCartView = (state) => state.cart.view ?? EMPTY_VIEW
 export const selectCartCount = (state) => state.cart.view?.itemCount ?? 0
-export const selectCartLines = (state) => (state.cart.view?.packages ?? []).flatMap((p) => p.items)
+/**
+ * Every line of every package. createSelector remembers the answer while the packages stay the same - a plain
+ * flatMap made a NEW list on each call, so React redrew the checkout page needlessly (warned in the E2E run).
+ */
+export const selectCartLines = createSelector(
+  (state) => state.cart.view?.packages,
+  (packages) => (packages ?? []).flatMap((p) => p.items),
+)
