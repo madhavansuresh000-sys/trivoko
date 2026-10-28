@@ -83,6 +83,15 @@ public class Product {
 	@Column(name = "mrp_from", precision = 12, scale = 2)
 	private BigDecimal mrpFrom;
 
+	/** Average stars (1 decimal) and number of reviews. Only setRating() changes them (the review module calls it). */
+	@Setter(AccessLevel.NONE)
+	@Column(name = "rating_avg", precision = 2, scale = 1)
+	private BigDecimal ratingAvg;
+
+	@Setter(AccessLevel.NONE)
+	@Column(name = "rating_count", nullable = false)
+	private int ratingCount;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
@@ -118,6 +127,12 @@ public class Product {
 	public void addImage(ProductImage image) {
 		image.setProduct(this);
 		images.add(image);
+	}
+
+	/** No reviews -> no average (the card shows no stars rather than "0.0"). */
+	public void setRating(BigDecimal average, int count) {
+		this.ratingCount = count;
+		this.ratingAvg = count == 0 ? null : average;
 	}
 
 	/** price_from / mrp_from = the cheapest variant. Call after any variant price changes. */

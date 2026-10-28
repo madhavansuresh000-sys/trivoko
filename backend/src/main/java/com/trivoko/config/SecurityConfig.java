@@ -53,6 +53,8 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/health", "/actuator/health").permitAll()
 				.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/csrf").permitAll()
+				// reviews are public to read, but "my review" needs a login (this rule must come BEFORE the GET one)
+				.requestMatchers("/api/products/*/reviews/mine").authenticated()
 				// the shop window is public - anyone may BROWSE (GET only)
 				.requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/sellers/**").permitAll()
 				// a guest's cart lives in the browser; the server only prices it (nothing is saved)

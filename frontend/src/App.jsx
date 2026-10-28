@@ -1,5 +1,5 @@
 import { lazy, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes } from 'react-router-dom'
 
 import RequireAuth from './components/auth/RequireAuth'
@@ -13,8 +13,9 @@ import ProductsPage from './pages/ProductsPage'
 import FlashSalePage from './pages/FlashSalePage'
 import RegisterPage from './pages/RegisterPage'
 import ShopPage from './pages/ShopPage'
-import { loadSession } from './store/authSlice'
+import { loadSession, selectUser } from './store/authSlice'
 import { loadCart } from './store/cartSlice'
+import { loadWishlistIds } from './store/wishlistSlice'
 
 // loaded only when someone opens them (React.lazy = code splitting)
 const StyleGuidePage = lazy(() => import('./pages/StyleGuidePage'))
@@ -43,6 +44,7 @@ const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'))
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'))
 const AdminFlashSalesPage = lazy(() => import('./pages/admin/AdminFlashSalesPage'))
 const SellerFlashPage = lazy(() => import('./pages/seller/SellerFlashPage'))
+const WishlistPage = lazy(() => import('./pages/WishlistPage'))
 const MyReturnsPage = lazy(() => import('./pages/MyReturnsPage'))
 const SellerReturnsPage = lazy(() => import('./pages/seller/SellerReturnsPage'))
 const AdminReturnsPage = lazy(() => import('./pages/admin/AdminReturnsPage'))
@@ -54,6 +56,12 @@ export default function App() {
   useEffect(() => {
     dispatch(loadSession()).then(() => dispatch(loadCart()))
   }, [dispatch])
+
+  // the filled hearts: loaded whenever someone logs in (a guest has none)
+  const userId = useSelector(selectUser)?.id
+  useEffect(() => {
+    if (userId) dispatch(loadWishlistIds())
+  }, [dispatch, userId])
 
   return (
     <Routes>
@@ -76,6 +84,7 @@ export default function App() {
           <Route path="payment/cancelled" element={<PaymentResultPage cancelled />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:number" element={<OrderDetailPage />} />
+          <Route path="wishlist" element={<WishlistPage />} />
           <Route path="account/returns" element={<MyReturnsPage />} />
           <Route path="account/returns/:id" element={<MyReturnsPage />} />
           {/* the seller back office (Phase 5); SellerLayout shows "become a seller" to everyone else */}

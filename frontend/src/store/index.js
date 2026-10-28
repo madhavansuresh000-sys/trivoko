@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './authSlice'
 import cartReducer from './cartSlice'
 import notificationsReducer from './notificationsSlice'
+import wishlistReducer from './wishlistSlice'
 
 /**
  * ONE store for the whole app. Each slice owns one part of the state:
@@ -14,5 +15,6 @@ export const store = configureStore({
     auth: authReducer,
     cart: cartReducer,
     notifications: notificationsReducer,
+    wishlist: wishlistReducer,
   },
 })

@@ -1,6 +1,7 @@
 package com.trivoko.catalog;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,10 +28,12 @@ import com.trivoko.catalog.dto.ImageInput;
 import com.trivoko.catalog.dto.LowStockView;
 import com.trivoko.catalog.dto.ProductCard;
 import com.trivoko.catalog.dto.ProductDetail;
+import com.trivoko.catalog.dto.ProductRef;
 import com.trivoko.catalog.dto.SellerProductRequest;
 import com.trivoko.catalog.dto.SellerProductView;
 import com.trivoko.catalog.dto.SellerVariantRequest;
 import com.trivoko.catalog.dto.VariantView;
+import com.trivoko.catalog.dto.WatchedProduct;
 import com.trivoko.admin.AuditService;
 import com.trivoko.common.BadRequestException;
 import com.trivoko.common.BusinessRuleException;
@@ -60,9 +64,12 @@ public class ProductService {
 
 	private final SellerService sellerService;
 
+	private final ApplicationEventPublisher events;
+
 	ProductService(ProductRepository products, ProductVariantRepository variants,
 			PriceHistoryRepository priceHistory, CategoryService categoryService, CategoryRepository categories,
-			AuditService audit, EntityManager em, ImageUploadService uploads, SellerService sellerService) {
+			AuditService audit, EntityManager em, ImageUploadService uploads, SellerService sellerService,
+			ApplicationEventPublisher events) {
 		this.products = products;
 		this.variants = variants;
 		this.priceHistory = priceHistory;
@@ -72,6 +79,7 @@ public class ProductService {
 		this.em = em;
 		this.uploads = uploads;
 		this.sellerService = sellerService;
+		this.events = events;
 	}
 
 	/** The shop listing: only what the public may see, with the customer's filters. */
@@ -222,8 +230,53 @@ public class ProductService {
 	public ProductDetail getBySlug(String slug) {
 		return products.findOne(ProductSpecifications.visibleInShop()
 				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
-			.map(CatalogMapper::toDetail)
+			.map(p -> {
+				// the lowest "from" price of the last 30 days = the smallest of today's price and every old / new
+				// price of a change in that window (a price that held from before the window is a change's old price)
+				PriceWindow window = priceHistory.lowestSince(p.getId(), LocalDateTime.now().minusDays(30));
+				BigDecimal lowest = p.getPriceFrom();
+				for (BigDecimal b : new BigDecimal[] { window.lowestOld(), window.lowestNew() }) {
+					if (b != null && (lowest == null || b.compareTo(lowest) < 0)) {
+						lowest = b;
+					}
+				}
+				boolean moved = window.changes() > 0;
+				boolean lowestNow = moved && p.getPriceFrom() != null && p.getPriceFrom().compareTo(lowest) <= 0;
+				return CatalogMapper.toDetail(p, lowest, lowestNow);
+			})
 			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Reviews: the live product behind this slug (not live = "not found", the same as the product page). */
+	public ProductRef liveRef(String slug) {
+		return products.findOne(ProductSpecifications.visibleInShop()
+				.and((root, query, cb) -> cb.equal(root.get("slug"), slug)))
+			.map(p -> new ProductRef(p.getId(), p.getName(), p.getSlug(),
+					p.getVariants().stream().map(ProductVariant::getId).toList()))
+			.orElseThrow(() -> new ResourceNotFoundException("Product", slug));
+	}
+
+	/** Wishlist "add": the live product as a card (not live = "not found"). */
+	public ProductCard liveCard(Long productId) {
+		return products.findOne(ProductSpecifications.visibleInShop()
+				.and((root, query, cb) -> cb.equal(root.get("id"), productId)))
+			.map(CatalogMapper::toCard)
+			.orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+	}
+
+	/** Wishlist page and price-drop job: these products, live or not. Unknown ids are left out. */
+	public Map<Long, WatchedProduct> watched(Collection<Long> productIds) {
+		return products.findAllById(productIds).stream()
+			.collect(Collectors.toMap(Product::getId, p -> new WatchedProduct(CatalogMapper.toCard(p),
+					p.getStatus() == ProductStatus.ACTIVE && p.getSeller().getStatus() == SellerStatus.APPROVED)));
+	}
+
+	/** Called by the review module after every review write, so cards show stars without counting reviews. */
+	@Transactional
+	public void updateRating(Long productId, BigDecimal average, int count) {
+		products.findById(productId)
+			.orElseThrow(() -> new ResourceNotFoundException("Product", productId))
+			.setRating(average, count);
 	}
 
 	/**
@@ -246,6 +299,7 @@ public class ProductService {
 		if (oldPrice.compareTo(newPrice) != 0) {
 			priceHistory.save(new PriceHistory(variant, oldPrice, newPrice));
 			audit.record("PRICE_CHANGED", "VARIANT", variant.getId(), oldPrice.toPlainString() + " -> " + newPrice.toPlainString());
+			events.publishEvent(new PriceChanged(variant.getProduct().getId())); // wishlist marks its rows after commit
 		}
 		variant.setPrice(newPrice);
 		variant.setMrp(newMrp);

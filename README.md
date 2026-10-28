@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 8 - Returns & refunds** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units under a 5,000-user k6 load (Phase 7). Now a customer can return ONE delivered item: the seller (or, after an escalation, the admin) decides, and when the courier collects it the customer gets back exactly what they paid for that line through a Stripe partial refund - never twice - while stock and the seller's ledger stay in step.
+> **Status: Phase 9 - Reviews, wishlist & price-drop alerts** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units under a 5,000-user k6 load (Phase 7); a delivered item can be returned for exactly what was paid (Phase 8). Now only customers who received a product can review it, anyone can save products to a wishlist, and a price drop sends ONE alert - not five when the seller edits the price five times.
 
 ## What it will do
 
@@ -117,6 +117,46 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 (approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
+
+### Reviews, wishlist & price-drop alerts (Phase 9)
+
+You tell the shopkeeper "call me if this TV gets cheaper". He calls you once when it does - not five times because
+he changed the price tag five times in a minute.
+
+```
+ seller saves a price --> ProductService.changePrice --> price_history row + PriceChanged event
+                                                              | (only after the save is committed)
+                                                              v
+                       wishlist_items.price_changed = TRUE for that product   (5 edits = still ONE mark)
+                                                              |
+  every 10 min  PriceAlertJob --------------------------------+
+     price NOW at least 1% below the last price the customer heard from us (or the price when saved)?
+        yes -> ONE bell + email PRICE_DROP, remember this price        always -> clear the mark
+```
+
+| URL | Who | What it does |
+|---|---|---|
+| `GET /api/products/{slug}/reviews?page=` | anyone | Average (1 decimal), count, 5..1 bars + 10 reviews per page, newest first ("Ravi K.", Verified buyer) |
+| `GET /api/products/{slug}/reviews/mine` | customer | `canReview` (a DELIVERED package of mine holds this product) + my review |
+| `PUT /api/products/{slug}/reviews/mine` `{rating, title, body}` | customer who received it | Write, or edit (one review per product - UNIQUE key); else 403 |
+| `DELETE /api/products/{slug}/reviews/mine` | author | Delete my review |
+| `GET /api/me/wishlist`, `GET /api/me/wishlist/ids` | customer | My saved products with "Rs X lower than when you saved it"; the ids fill the hearts |
+| `PUT /api/me/wishlist/{productId}`, `DELETE ...` | customer | Save (twice = still one row, at most 100) / remove |
+| `GET /api/products/{slug}` | anyone | now also `ratingAvg`, `ratingCount`, `lowestPrice30Days`, `lowestNow` (cards get the stars too) |
+
+How it stays honest and quiet:
+
+- **Verified buyer**: the review module asks the order module `hasDelivered(user, variants of this product)` - it never
+  reads the order tables (module rule). A later return does not take it away: they did receive and try it.
+- **Stars on cards without extra queries**: after every review write the average and count are saved on
+  `products.rating_avg / rating_count`, so a listing of 24 cards reads them from the product row.
+- **One alert per real drop**: the event only marks rows; the job reads the LATEST price. 999 -> 899 alerts once;
+  899 -> 950 -> 899 does not alert again; a drop under 1%, a blocked shop or an empty shelf sends nothing
+  (`PriceAlertTest`: 5 changes in a minute -> 1 alert).
+- **Lowest price in 30 days**: the smallest of today's price and every old / new price of the product's changes in
+  the last 30 days (`price_history`, index `(variant_id, changed_at)`). The green badge shows only if the price moved.
+- Pages: stars + reviews on the product page, a heart on every card, `/wishlist`, "Write a review" on delivered order
+  lines. Migration: `V12__reviews_wishlist.sql`. Job interval: `app.wishlist.alert-every` (10m).
 
 ### Returns & refunds (Phase 8)
 

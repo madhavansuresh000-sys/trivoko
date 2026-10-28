@@ -1,6 +1,7 @@
 package com.trivoko.order;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,6 +190,14 @@ public class OrderService {
 	/** "Verify on return": has the payment company seen the money? */
 	public boolean paidAtProvider(String sessionId) {
 		return paymentService.confirmedByProvider(sessionId);
+	}
+
+	/**
+	 * Reviews: "Verified buyer" means a DELIVERED package of theirs holds one of these variants. A later return
+	 * does not undo it - they did receive and try the product.
+	 */
+	public boolean hasDelivered(Long userId, Collection<Long> variantIds) {
+		return !variantIds.isEmpty() && packages.existsWithItem(userId, PackageStatus.DELIVERED, variantIds);
 	}
 
 	public String numberOf(Long orderId) {

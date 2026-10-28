@@ -94,6 +94,13 @@ public class UserService {
 				: users.findByIdIn(ids).stream().collect(Collectors.toMap(User::getId, User::getEmail));
 	}
 
+	/** id -> full name, e.g. for review authors. Unknown ids are left out. */
+	@Transactional(readOnly = true)
+	public Map<Long, String> namesOf(Collection<Long> ids) {
+		return ids.isEmpty() ? Map.of()
+				: users.findByIdIn(ids).stream().collect(Collectors.toMap(User::getId, User::getFullName));
+	}
+
 	/**
 	 * Blocked = cannot log in, and the cookie they already have stops working on their next click (the JWT filter
 	 * asks findActiveById on every request). An admin account cannot be blocked from the panel - so the admin can

@@ -109,6 +109,11 @@ export default function OrderDetailPage() {
                   ) : canStillReturn(p) && (
                     <Button size="sm" variant="ghost" onClick={() => setReturning(it)}>Return</Button>
                   )}
+                  {p.status === 'DELIVERED' && (
+                    <Link to={`/products/${it.productSlug}#reviews`} className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
+                      Write a review
+                    </Link>
+                  )}
                 </span>
               </li>
             ))}

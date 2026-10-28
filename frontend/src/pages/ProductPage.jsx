@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import { fetchProduct } from '../api/catalog'
 import PriceTag from '../components/catalog/PriceTag'
 import ProductImage from '../components/catalog/ProductImage'
+import ProductReviews from '../components/review/ProductReviews'
 import VariantPicker from '../components/catalog/VariantPicker'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -12,7 +13,10 @@ import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import { CartIcon, ChevronRightIcon, StoreIcon, TruckIcon } from '../components/ui/icons'
 import { Skeleton } from '../components/ui/Loader'
+import { Stars } from '../components/ui/StarRating'
+import WishlistButton from '../components/wishlist/WishlistButton'
 import useAsync, { describeError } from '../hooks/useAsync'
+import { formatRupees } from '../lib/money'
 import { addToCart } from '../store/cartSlice'
 import { notify } from '../store/notificationsSlice'
 import NotFoundPage from './NotFoundPage'
@@ -106,6 +110,7 @@ function BuyBox({ product }) {
       <div>
         <PriceTag price={variant.price} mrp={variant.mrp} discountPercent={variant.discountPercent} size="lg" />
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Inclusive of all taxes</p>
+        <LowestPrice product={product} />
       </div>
       <VariantPicker variants={product.variants} selectedId={variant.id} onSelect={choose} />
       <div className="flex flex-wrap items-center gap-3">
@@ -127,6 +132,17 @@ function BuyBox({ product }) {
         {added && <Button size="lg" variant="secondary" to="/cart">Go to cart</Button>}
       </div>
     </div>
+  )
+}
+
+/** "Lowest price in 30 days: Rs X" and a green badge when today's price IS that lowest (and it moved). */
+function LowestPrice({ product }) {
+  if (product.lowestPrice30Days == null) return null
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+      Lowest price in 30 days: <span className="font-medium">{formatRupees(product.lowestPrice30Days)}</span>
+      {product.lowestNow && <Badge color="green">Lowest in 30 days</Badge>}
+    </p>
   )
 }
 
@@ -178,7 +194,15 @@ export default function ProductPage() {
         <div className="space-y-5">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{product.brand}</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">{product.name}</h1>
+            <div className="mt-1 flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">{product.name}</h1>
+              <WishlistButton product={product} className="shrink-0 border border-slate-200 dark:border-slate-700" />
+            </div>
+            {product.ratingCount > 0 && (
+              <a href="#reviews" className="mt-1 inline-flex items-center gap-1 text-sm text-slate-600 hover:underline dark:text-slate-400">
+                <Stars value={Number(product.ratingAvg)} /> {Number(product.ratingAvg).toFixed(1)} · {product.ratingCount} {product.ratingCount === 1 ? 'review' : 'reviews'}
+              </a>
+            )}
           </div>
           {/* key: a different product starts with its own first variant */}
           <BuyBox key={product.id} product={product} />
@@ -189,6 +213,7 @@ export default function ProductPage() {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">About this product</h2>
         <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">{product.description}</p>
       </section>
+      <ProductReviews slug={product.slug} />
     </div>
   )
 }

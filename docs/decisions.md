@@ -184,3 +184,23 @@ as all different, so SALE lines (no return) use 0 and still cannot repeat.
 **Snapshot (V11).** A return copies order number, product, variant, quantity and shop from the bill, like
 `order_items` itself, so the seller and admin lists need no lookups per row.
 
+## D10 - Price-drop alerts: mark on change, decide in a job (Phase 9, 27 Oct 2026)
+
+**Why not alert at once?** A seller often saves a price several times in a row (typo, second thought). Alerting inside
+`changePrice` would send one message per save. Instead the `PriceChanged` event only sets `price_changed = TRUE` on that
+product's wishlist rows, after the commit (`@TransactionalEventListener(AFTER_COMMIT)` + `REQUIRES_NEW`, so a
+rolled-back edit marks nothing). `PriceAlertJob` (every 10 minutes) reads only the marked rows and the price as it is
+NOW - five edits become one alert with the final price.
+
+**Never spammy.** The reference is the last price we told the customer about (`last_alerted_price`), or the price when
+they saved it. An alert needs a drop of at least 1% below it; going up and back down to the same price is not a new
+drop. Only live, in-stock products alert. Known small gap: a price change that commits in the milliseconds while the
+job is running can have its mark cleared by the job; it is picked up by the next change. Acceptable for a wishlist.
+
+**Saved per product, not per variant.** The tracked number is the product's "from" price - the one on the card - so
+the wishlist and the alert talk about the same price the customer saw.
+
+**Verified buyer = a DELIVERED package**, asked through `OrderService.hasDelivered` (module rule: no reading
+`order_items` from the review module). Returned items still count. One review per customer per product (UNIQUE
+key); writing again edits it. The average and count are stored on `products` so cards need no extra query.
+

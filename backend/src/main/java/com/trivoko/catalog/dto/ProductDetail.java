@@ -16,7 +16,13 @@ public record ProductDetail(
 		CategoryRef category,
 		SellerRef seller,
 		List<VariantView> variants,
-		List<ImageView> images) {
+		List<ImageView> images,
+		BigDecimal ratingAvg,
+		int ratingCount,
+		/** The lowest "from" price in the last 30 days (today's price included). */
+		BigDecimal lowestPrice30Days,
+		/** true = the price moved in those 30 days and today's price IS the lowest -> green badge. */
+		boolean lowestNow) {
 
 	/** A category with its parent, for the breadcrumb: Mobiles & Accessories > Cases & covers. */
 	public record CategoryRef(String name, String slug, CategoryRef parent) {

@@ -17,6 +17,13 @@ public interface OrderPackageRepository extends JpaRepository<OrderPackage, Long
 	@Query("select p from OrderPackage p join p.items i where i.id = :itemId")
 	java.util.Optional<OrderPackage> findByItemId(@Param("itemId") Long itemId);
 
+	/** Phase 9 reviews: did this customer receive at least one of these variants? */
+	@Query("""
+			select count(p) > 0 from OrderPackage p join p.items i
+			where p.order.userId = :userId and p.status = :status and i.variantId in :variantIds""")
+	boolean existsWithItem(@Param("userId") Long userId, @Param("status") PackageStatus status,
+			@Param("variantIds") Collection<Long> variantIds);
+
 	long countBySellerIdAndStatus(Long sellerId, PackageStatus status);
 
 	/** Sales chart: my packages placed since this time, in these statuses. */
