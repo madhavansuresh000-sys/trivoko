@@ -44,6 +44,17 @@ class SearchIndexTest {
 		assertThat(inIndex).isEqualTo(jdbc.queryForObject("SELECT COUNT(*) FROM products", Long.class));
 	}
 
+	@Autowired
+	private SearchIndexer indexer;
+
+	@Test
+	void theIndexIsBuiltBeforeTheWebServerTakesRequests() {
+		// Spring Boot starts the web server in phase DEFAULT_PHASE - 1024; a lower phase starts earlier.
+		// (Found in the browser check: on ApplicationReadyEvent, searches in the first ~2 s found nothing.)
+		assertThat(indexer.isRunning()).isTrue();
+		assertThat(indexer.getPhase()).isLessThan(org.springframework.context.SmartLifecycle.DEFAULT_PHASE - 1024);
+	}
+
 	@Test
 	void capitalLettersDoNotMatter() {
 		List<Long> volta = jdbc.queryForList("SELECT id FROM products WHERE brand = 'Volta'", Long.class);
