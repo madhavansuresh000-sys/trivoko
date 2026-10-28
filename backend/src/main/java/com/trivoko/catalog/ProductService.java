@@ -262,6 +262,19 @@ public class ProductService {
 		return productIds.isEmpty() ? List.of() : products.searchRows(productIds);
 	}
 
+	/**
+	 * "Customers also bought": the LIVE products of these variants, in this order, each product once, never the
+	 * product itself, at most `limit` cards.
+	 */
+	public List<ProductCard> liveCardsOfVariants(List<Long> variantIds, Long exceptProductId, int limit) {
+		Map<Long, ProductVariant> byId = variants.findAllById(variantIds).stream()
+			.collect(Collectors.toMap(ProductVariant::getId, v -> v));
+		List<Long> productIds = variantIds.stream().map(byId::get).filter(Objects::nonNull)
+			.map(v -> v.getProduct().getId()).filter(id -> !id.equals(exceptProductId)).distinct().toList();
+		Set<Long> live = searchRows(productIds).stream().map(SearchRow::id).collect(Collectors.toSet());
+		return cardsInOrder(productIds.stream().filter(live::contains).limit(limit).toList());
+	}
+
 	/** Search: cards for these products in exactly this order (the order of relevance). */
 	public List<ProductCard> cardsInOrder(List<Long> productIds) {
 		Map<Long, ProductCard> byId = products.findAllById(productIds).stream()
