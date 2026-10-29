@@ -194,6 +194,32 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
+					<!-- Phase 11: `mvnw verify` (and so CI) FAILS if the services' tests cover less than 80% of their
+					     lines - coverage can no longer slide down unnoticed. (29 Oct 2026: 91.7%.) The scheduled-job
+					     wrappers (*Job) are left out: tests switch the timers off and call the services directly. -->
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<includes>
+								<include>com/trivoko/**/*Service.class</include>
+							</includes>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 			<plugin>
