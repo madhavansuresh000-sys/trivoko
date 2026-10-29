@@ -118,8 +118,9 @@ function AccountMenu({ user }) {
   const doLogout = useLogout()
   const shopLabel = isActiveSeller(user) ? 'My shop (seller back office)' : user.seller ? 'My shop application' : 'Become a seller'
   const shopLink = isActiveSeller(user) ? '/seller' : '/sell'
+  // the button's name starts with its visible words, so "click Hi Ravi" works for voice control too (axe, Phase 11)
   return (
-    <Dropdown label="Account menu" button={<><UserIcon className="h-4 w-4" /> Hi, {firstName(user)}</>}>
+    <Dropdown label={`Hi, ${firstName(user)} - account menu`} button={<><UserIcon className="h-4 w-4" /> Hi, {firstName(user)}</>}>
       {(close) => (
         <div className="w-56">
           <p className="truncate px-3 pb-2 pt-1 text-xs text-slate-500 dark:text-slate-400">{user.email}</p>

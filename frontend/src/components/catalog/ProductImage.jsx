@@ -16,7 +16,7 @@ export default function ProductImage({ src, alt, categorySlug, brand, className 
       className={`flex aspect-square w-full flex-col items-center justify-center rounded-xl ${look.tile} ${className}`}>
       <span aria-hidden="true" className={large ? 'text-8xl' : 'text-5xl'}>{look.emoji}</span>
       {brand && (
-        <span aria-hidden="true" className={`mt-2 font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 ${large ? 'text-sm' : 'text-[10px]'}`}>
+        <span aria-hidden="true" className={`mt-2 font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400 ${large ? 'text-sm' : 'text-[10px]'}`}>
           {brand}
         </span>
       )}

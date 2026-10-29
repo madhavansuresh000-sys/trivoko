@@ -58,7 +58,7 @@ function FoundIn({ categories, category, onChange }) {
         <li key={c.slug}>
           <button type="button" className={button(c.slug === category)} aria-pressed={c.slug === category}
             onClick={() => onChange({ category: c.slug })}>
-            {c.name} <span className="text-slate-400">({c.count})</span>
+            {c.name} <span className="text-slate-500 dark:text-slate-400">({c.count})</span>
           </button>
         </li>
       ))}
@@ -77,7 +77,7 @@ function PriceBands({ bands, filters, onChange }) {
             <button type="button" disabled={b.count === 0 && !active} aria-pressed={active}
               onClick={() => onChange(active ? { minPrice: null, maxPrice: null } : { minPrice: b.min, maxPrice: b.max })}
               className={`text-sm disabled:opacity-40 ${active ? 'font-semibold text-brand-700 dark:text-brand-300' : 'text-slate-600 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300'}`}>
-              {b.label} <span className="text-slate-400">({b.count})</span>
+              {b.label} <span className="text-slate-500 dark:text-slate-400">({b.count})</span>
             </button>
           </li>
         )
@@ -102,7 +102,7 @@ function PriceRange({ minPrice, maxPrice, onChange }) {
         <input id="minPrice" type="number" min="0" inputMode="numeric" placeholder="₹ Min" value={min}
           onChange={(e) => setMin(e.target.value)}
           className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900" />
-        <span className="text-slate-400">–</span>
+        <span className="text-slate-500 dark:text-slate-400">–</span>
         <label className="sr-only" htmlFor="maxPrice">Maximum price</label>
         <input id="maxPrice" type="number" min="0" inputMode="numeric" placeholder="₹ Max" value={max}
           onChange={(e) => setMax(e.target.value)}
@@ -136,7 +136,7 @@ export default function FilterPanel({ filters, tree, brands, facets = null, onCh
               <li key={brand}>
                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <input type="checkbox" className={checkbox} checked={filters.brands.includes(brand)} onChange={() => toggleBrand(brand)} />
-                  {brand} <span className="text-slate-400">({count})</span>
+                  {brand} <span className="text-slate-500 dark:text-slate-400">({count})</span>
                 </label>
               </li>
             ))}

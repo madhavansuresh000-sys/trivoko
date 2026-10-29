@@ -22,7 +22,7 @@ async function logIn(browser, who) {
   await page.getByLabel('Email').fill(`${who}@trivoko.test`)
   await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
   await page.getByRole('button', { name: 'Log in' }).click()
-  await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /account menu/ })).toBeVisible()
   return page
 }
 
