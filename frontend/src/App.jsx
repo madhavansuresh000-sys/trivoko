@@ -4,20 +4,21 @@ import { Route, Routes } from 'react-router-dom'
 
 import RequireAuth from './components/auth/RequireAuth'
 import Layout from './components/layout/Layout'
-import CartPage from './pages/CartPage'
 import HomePage from './pages/HomePage'
-import LoginPage from './pages/LoginPage'
-import NotFoundPage from './pages/NotFoundPage'
-import ProductPage from './pages/ProductPage'
-import ProductsPage from './pages/ProductsPage'
-import FlashSalePage from './pages/FlashSalePage'
-import RegisterPage from './pages/RegisterPage'
-import ShopPage from './pages/ShopPage'
 import { loadSession, selectUser } from './store/authSlice'
 import { loadCart } from './store/cartSlice'
 import { loadWishlistIds } from './store/wishlistSlice'
 
 // loaded only when someone opens them (React.lazy = code splitting)
+// Phase 11 (Lighthouse): only the home page is in the first download; every other page comes when it is opened
+const CartPage = lazy(() => import('./pages/CartPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const ProductPage = lazy(() => import('./pages/ProductPage'))
+const ProductsPage = lazy(() => import('./pages/ProductsPage'))
+const FlashSalePage = lazy(() => import('./pages/FlashSalePage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ShopPage = lazy(() => import('./pages/ShopPage'))
 const StyleGuidePage = lazy(() => import('./pages/StyleGuidePage'))
 const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'))
 const AddressesPage = lazy(() => import('./pages/AddressesPage'))
