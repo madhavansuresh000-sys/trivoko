@@ -3,7 +3,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # phase branches too (Phase 11): every phase is checked by CI before it reaches main
+    branches: [main, 'phase-*']
   pull_request:
 
 jobs:
@@ -46,3 +47,86 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  # Phase 11: the whole demo story in a real browser (Playwright) - real backend jar, real React app, real MySQL.
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      # the E2E test's own throwaway database (same settings as e2e/settings.js; test-only passwords)
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: trivoko
+          MYSQL_USER: e2e
+          MYSQL_PASSWORD: e2e-only
+          MYSQL_ROOT_PASSWORD: e2e-root-only
+        ports:
+          - 3308:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ue2e -pe2e-only"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Build the backend jar (the tests already ran in the backend job)
+        working-directory: backend
+        run: ./mvnw -B -DskipTests package
+      - name: Install the frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright and Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run the demo story
+        working-directory: e2e
+        run: npx playwright test
+      # on a failure: the HTML report + a step-by-step trace to download from the run's page
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+
+  # Phase 11 security review, repeated on every push: a leaked key or a newly published vulnerability turns CI red.
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the WHOLE history: a key removed later is still readable in an old commit
+      - name: Secret scan of every commit (gitleaks)
+        run: git log -p --all --no-color | docker run --rm -i ghcr.io/gitleaks/gitleaks:v8.24.2 stdin --redact
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: npm audit (high and critical fail the build)
+        run: |
+          (cd frontend && npm audit --audit-level=high)
+          (cd e2e && npm audit --audit-level=high)
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Known vulnerabilities in the Java libraries (OSV-Scanner on the exact dependency list)
+        working-directory: backend
+        run: |
+          ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom -DoutputFormat=json -DincludeTestScope=false
+          docker run --rm -v "$PWD:/src" ghcr.io/google/osv-scanner:v2.2.3 scan source --lockfile=/src/target/bom.json

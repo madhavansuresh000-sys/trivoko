@@ -1,0 +1,9 @@
+# TriVoKo - search engines may read the shop; account, seller and admin pages are private
+User-agent: *
+Disallow: /account/
+Disallow: /orders
+Disallow: /checkout
+Disallow: /seller
+Disallow: /admin
+Disallow: /wishlist
+Allow: /

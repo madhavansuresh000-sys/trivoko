@@ -31,7 +31,8 @@ function SectionTitle({ title, to, linkText = 'See all' }) {
 
 function CategoryChips({ tree }) {
   return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+    // min-h: the row keeps its height while the categories load, so the page below does not jump (Lighthouse CLS)
+    <div className="-mx-4 flex min-h-[2.375rem] gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
       {tree.map((top) => {
         const look = lookOf(top.slug)
         return (

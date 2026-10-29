@@ -5,8 +5,9 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<!-- same version as EventHub (already proven to work) -->
-		<version>4.1.1</version>
+		<!-- Phase 11 security review: 4.1.2 brings Tomcat 11.0.27 and Jackson 2.21.7 / 3.1.7, which fix 18 known
+		     vulnerabilities (4 critical in Tomcat 11.0.24) that OSV-Scanner found in 4.1.1's libraries -->
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.trivoko</groupId>
@@ -193,6 +194,32 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+					</execution>
+					<!-- Phase 11: `mvnw verify` (and so CI) FAILS if the services' tests cover less than 80% of their
+					     lines - coverage can no longer slide down unnoticed. (29 Oct 2026: 91.7%.) The scheduled-job
+					     wrappers (*Job) are left out: tests switch the timers off and call the services directly. -->
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<includes>
+								<include>com/trivoko/**/*Service.class</include>
+							</includes>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

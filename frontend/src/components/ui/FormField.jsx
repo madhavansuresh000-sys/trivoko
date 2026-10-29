@@ -33,7 +33,7 @@ export function PasswordField({ label, hint, error, id, className = '', children
         <input id={id} type={visible ? 'text' : 'password'} className={`${inputClass(error)} pr-16`}
           aria-invalid={Boolean(error)} aria-describedby={describedBy} {...inputProps} />
         <button type="button" onClick={() => setVisible((v) => !v)}
-          className="absolute inset-y-0 right-0 px-3 text-xs font-semibold text-brand-600 hover:text-brand-800 dark:text-brand-400"
+          className="absolute inset-y-0 right-0 px-3 text-xs font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-400"
           aria-label={visible ? 'Hide password' : 'Show password'}>
           {visible ? 'Hide' : 'Show'}
         </button>

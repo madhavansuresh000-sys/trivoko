@@ -10,7 +10,7 @@
  * Status colours come from Tailwind: green = in stock / delivered, amber = pending, red = sold out / error.
  */
 @theme {
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 
   --color-brand-50: #f0fdfa;
   --color-brand-100: #ccfbf1;
