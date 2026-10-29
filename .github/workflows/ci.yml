@@ -102,3 +102,31 @@ jobs:
           path: |
             e2e/playwright-report/
             e2e/test-results/
+
+  # Phase 11 security review, repeated on every push: a leaked key or a newly published vulnerability turns CI red.
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the WHOLE history: a key removed later is still readable in an old commit
+      - name: Secret scan of every commit (gitleaks)
+        run: git log -p --all --no-color | docker run --rm -i ghcr.io/gitleaks/gitleaks:v8.24.2 stdin --redact
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: npm audit (high and critical fail the build)
+        run: |
+          (cd frontend && npm audit --audit-level=high)
+          (cd e2e && npm audit --audit-level=high)
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Known vulnerabilities in the Java libraries (OSV-Scanner on the exact dependency list)
+        working-directory: backend
+        run: |
+          ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom -DoutputFormat=json -DincludeTestScope=false
+          docker run --rm -v "$PWD:/src" ghcr.io/google/osv-scanner:v2.2.3 scan source --lockfile=/src/target/bom.json

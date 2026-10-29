@@ -5,8 +5,9 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<!-- same version as EventHub (already proven to work) -->
-		<version>4.1.1</version>
+		<!-- Phase 11 security review: 4.1.2 brings Tomcat 11.0.27 and Jackson 2.21.7 / 3.1.7, which fix 18 known
+		     vulnerabilities (4 critical in Tomcat 11.0.24) that OSV-Scanner found in 4.1.1's libraries -->
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.trivoko</groupId>
