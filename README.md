@@ -9,7 +9,7 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 10 - Smart search** (October 2026): one cart from many sellers, one payment, one package per seller (Phase 4); sellers ship, earn 90% and see their sales (Phase 5); the admin runs the marketplace (Phase 6); a flash sale hands out exactly the right number of units (Phase 7); a delivered item can be returned for exactly what was paid (Phase 8); verified-buyer reviews, a wishlist and ONE alert per real price drop (Phase 9). Now search forgives typos ("iphnoe" finds the iPhone case first), suggests while you type, counts results per brand, category and price, and shows what customers also bought.
+> **Status: Phase 11 - Testing & polish** (October 2026): the whole marketplace works - one cart from many sellers and one payment (Phase 4), seller back office (5), admin panel (6), flash sale (7), returns with exact partial refunds (8), verified reviews, wishlist and price-drop alerts (9), typo-tolerant smart search (10). Phase 11 made it portfolio-grade: the whole demo story runs as a browser test in CI, every main page passes an accessibility check in light and dark mode, the home page scores 92 in Lighthouse on a phone, and every push is scanned for leaked secrets and known vulnerabilities. Next: Phase 12 - launch.
 
 ## What it will do
 
@@ -34,7 +34,7 @@
 | Backend | Java 25, Spring Boot 4 (modular monolith, package `com.trivoko.*`), Spring Security, Spring Data JPA, Flyway |
 | Database | MySQL 8.4 (Docker) |
 | Payments | Stripe Checkout (test mode), webhooks, partial refunds |
-| Testing | JUnit 5, Testcontainers, Vitest, Playwright, k6 |
+| Testing | JUnit 5, Testcontainers, ArchUnit, JaCoCo, Vitest, Playwright + axe, k6, Lighthouse |
 | Delivery | Docker, GitHub Actions CI |
 
 ## Run it on your laptop
@@ -49,6 +49,36 @@ cd frontend && npm install && npm run dev # shop on http://localhost:5173
 ```
 
 Tests: `cd backend && ./mvnw verify` (needs Docker - the tests start their own MySQL) and `cd frontend && npm test`.
+End-to-end (needs Docker): `cd backend && ./mvnw -DskipTests package`, then `cd e2e && npm ci && npx playwright install chromium && npm run db:up && npm test` (`npm run db:down` afterwards).
+
+## How TriVoKo is checked (Phase 11)
+
+Every push runs four CI jobs - the badge above is green only when all four are:
+
+```
+                 ▲  End-to-end (Playwright, 1 story + 6 accessibility runs)
+                ╱ ╲   a real browser clicks through the real app, real backend, real MySQL:
+               ╱   ╲  buy from 2 sellers -> 1 payment -> ship -> deliver -> return -> refund
+              ╱─────╲
+             ╱       ╲  Integration (most of the 392 JUnit tests: Testcontainers)
+            ╱         ╲   each API with a real MySQL: rules, security, money, races (10 clicks = 1 refund)
+           ╱───────────╲
+          ╱             ╲  Unit + component (101 Vitest + the plain JUnit tests)
+         ╱               ╲   one function or one screen alone, e.g. the order splitter, the search box
+        ─────────────────────
+   many, fast, narrow  at the bottom  ->  few, slow, the whole story  at the top
+```
+
+| Check | Result | Where |
+|---|---|---|
+| Backend tests | 392 green | `backend/src/test` |
+| Coverage of the services | 91.7% of lines - the build **fails below 80%** (JaCoCo check) | CI artifact `coverage-report` |
+| Frontend tests | 101 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
+| Demo story in a real browser | green in CI | `e2e/tests/demo-story.spec.js` |
+| Accessibility (axe, WCAG 2.1 AA) | every main page, light + laptop and dark + phone: no serious problems | `e2e/tests/accessibility.spec.js` |
+| Lighthouse, home page, phone profile | Performance 92 · Accessibility 100 · Best practices 96 · SEO 100 | self-hosted font, lazy pages, no layout jump |
+| Secrets in the Git history | none (gitleaks, every commit, every push) | CI job "Security scan" |
+| Known vulnerabilities | none (OSV-Scanner on all 151 Java libraries + `npm audit`) - Spring Boot 4.1.2 fixed 18 | [security review](Phase_11_Testing_and_Polish/Phase11_Security_Review_2026-10-29_0545.md) |
 
 API checks (backend running): `npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<DEMO_PASSWORD>` - or import the file in Postman.
 
@@ -340,7 +370,7 @@ Postman: `npx newman run postman/TriVoKo.postman_collection.json --env-var demoP
 | `00_Project_Documents/` | Master Plan and Phase Plan (Word + PDF) |
 | `Phase_0_Setup/` ... `Phase_12_Launch/` | One checklist document per phase |
 | `docs/` | Sketches, decisions, diagrams |
-| `load-tests/`, `e2e/` | k6 load tests (Phase 7), Playwright tests (Phase 11) |
+| `load-tests/`, `e2e/` | k6 load tests (Phase 7); Playwright demo story + accessibility tests with their own MySQL (Phase 11) |
 | `postman/` | Postman collection with automatic checks |
 | `tools/` | Generators: plan documents, sample data (`seed-gen`), Postman collection (`postman-gen`) |
 
