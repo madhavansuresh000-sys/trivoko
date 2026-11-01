@@ -25,4 +25,5 @@ USER trivoko
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Xss512k" \
     SEARCH_INDEX_DIR=/tmp/trivoko-search-index
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Lucene (search) uses Java's native-memory API for fast file access; this allows it without a warning
+ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-jar", "/app/app.jar"]
