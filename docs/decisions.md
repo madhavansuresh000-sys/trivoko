@@ -252,7 +252,7 @@ wrong passwords would lock that email for EVERYONE, and all customers would shar
 `server.forward-headers-strategy: framework` reads `X-Forwarded-For` (Vercel writes the visitor's address there
 itself) and the `https` scheme. Limit: someone calling the Render address directly can write a fake
 `X-Forwarded-For` and dodge the per-address login lock - the lock is a speed bump, not a wall;
-that a lock is a speed bump; strong protection would need a shared secret between Vercel and Render (later).
+strong protection would need a shared secret between Vercel and Render (later).
 
 **Security headers** are set by Vercel for the website (`vercel.json`): Content-Security-Policy (scripts only from
 our own address - so the dark-mode script moved from `index.html` into `public/theme.js`; photos from
