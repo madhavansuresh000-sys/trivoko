@@ -6,16 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="TriVoKo: one cart, many sellers, one payment." />
     <title>TriVoKo</title>
-    <script>
-      // Apply the saved theme before the page paints (avoids a white flash in dark mode).
-      try {
-        const saved = localStorage.getItem('theme')
-        const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-        document.documentElement.classList.toggle('dark', dark)
-      } catch {
-        /* storage blocked: keep the default light theme */
-      }
-    </script>
+    <!-- Apply the saved theme before the page paints (avoids a white flash in dark mode). A file, not an
+         inline script, so the Content-Security-Policy (vercel.json) can forbid inline scripts. -->
+    <script src="/theme.js"></script>
   </head>
   <body>
     <div id="root"></div>

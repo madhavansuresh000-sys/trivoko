@@ -1,2 +1,5 @@
-*
-!target/trivoko-backend-0.0.1-SNAPSHOT.jar
+# Only what the image build needs goes to Docker (the Dockerfile builds the JAR itself).
+target
+.idea
+*.iml
+*.log

@@ -1,10 +1,28 @@
-# TriVoKo backend image (Phase 7 load test; Phase 12 launch builds on it).
-# Build the jar first:   cd backend && ./mvnw -q -DskipTests package
-# Then:                  docker build -t trivoko-backend backend
-# Settings (database, secrets, ports) come from environment variables - nothing secret is baked into the image.
+# TriVoKo backend as a Docker image (Phase 7 load test, Phase 12 launch on Render).
+# Stage 1 builds the JAR with the Maven wrapper; stage 2 only holds Java + the JAR (smaller, no source code).
+# Build:  docker build -t trivoko-backend backend
+# Settings (profile, database, secrets) come from environment variables - nothing secret is baked into the image.
+# The profile is NOT fixed here: Render sets SPRING_PROFILES_ACTIVE=prod (render.yaml), the load test uses dev.
+
+FROM eclipse-temurin:25-jdk AS build
+WORKDIR /app
+# dependencies first: this layer is cached as long as pom.xml does not change
+COPY .mvn .mvn
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw && ./mvnw -q -B dependency:go-offline
+COPY src src
+# the tests already ran in GitHub Actions (they need Docker for MySQL, which a build machine does not have)
+RUN ./mvnw -q -B package -DskipTests
+
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-COPY target/trivoko-backend-0.0.1-SNAPSHOT.jar app.jar
+# run as a normal user, not root: a bug in the app cannot change the container's system files
+RUN useradd --system --no-create-home trivoko
+COPY --from=build /app/target/trivoko-backend-0.0.1-SNAPSHOT.jar app.jar
+USER trivoko
+# Render free = 512 MB for everything. 75% for Java, the simple one-thread garbage collector (least memory),
+# smaller thread stacks (each Tomcat thread reserves one). The search index goes to /tmp: rebuilt on every start.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Xss512k" \
+    SEARCH_INDEX_DIR=/tmp/trivoko-search-index
 EXPOSE 8080
-# a small container still gets a sensible share of memory
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
