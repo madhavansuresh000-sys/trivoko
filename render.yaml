@@ -1,0 +1,57 @@
+# Render "Blueprint" for the TriVoKo backend (Phase 12, same idea as EventHub).
+# Render dashboard -> New -> Blueprint -> pick this GitHub repo. Values marked "sync: false" are typed in the
+# dashboard and never stored in GitHub.
+services:
+  - type: web
+    name: trivoko-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore           # closest Render region to India
+    healthCheckPath: /api/health
+    autoDeploy: true            # every push to main deploys again
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # Indian time for order numbers, "today's sales" and the flash-sale clock
+      - key: TZ
+        value: Asia/Kolkata
+      # MySQL from Aiven: jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # signs the login cookies; Render makes a long random value
+      - key: JWT_SECRET
+        generateValue: true
+      # the Vercel address of the shop, e.g. https://trivoko.vercel.app (payment pages send people back here)
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # a long private password for the demo accounts (admin, Ravi, Kavya, the shop owners)
+      - key: DEMO_PASSWORD
+        sync: false
+      # product photo uploads (sellers): the same free Cloudinary account as on the laptop
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # payments: no Stripe keys -> the built-in "TEST PAYMENT - no real money" page. With Stripe TEST keys
+      # (sk_test_..., webhook https://<shop>/api/payments/stripe/webhook) real Stripe test checkout is used.
+      - key: PAYMENTS_TEST_PAGE
+        value: "true"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # emails: false = bell notifications only. For real emails with Brevo (free SMTP), add in the dashboard:
+      # MAIL_HOST smtp-relay.brevo.com, MAIL_USERNAME / MAIL_PASSWORD (Brevo -> SMTP & API), MAIL_FROM, and set
+      # MAIL_ENABLED to true. (Not listed here: an EMPTY MAIL_HOST would replace the safe default.)
+      - key: MAIL_ENABLED
+        value: "false"

@@ -204,9 +204,9 @@ the wishlist and the alert talk about the same price the customer saw.
 `order_items` from the review module). Returned items still count. One review per customer per product (UNIQUE
 key); writing again edits it. The average and count are stored on `products` so cards need no extra query.
 
-## D11 - Smart search: Lucene inside the app; it finds and ranks, MySQL filters and counts (Phase 10, 29 Oct 2026) - DRAFT
+## D11 - Smart search: Lucene inside the app; it finds and ranks, MySQL filters and counts (Phase 10, 29 Oct 2026)
 
-**Status: draft by Claude - the Phase Plan says "decide together"; MADHAVAN confirms or changes it.**
+**Status: decided together on 1 Nov 2026 - MADHAVAN chose "keep Lucene" for the live site.**
 
 **Split of work.** Lucene (Hibernate Search 8.4, D1) only answers "which products match these words, best first"
 (top 500 ids). MySQL then keeps the live, in-stock, category / brand / price matches and the page and counts are made
@@ -228,3 +228,33 @@ boosted - the D1 spike showed plain "distance 2" lets "iphnoe" match "phone". Te
 **Also bought** is plain SQL over paid orders in the order module, cached 1 hour (its own Caffeine cache; the rest
 keep 60 s). Only the ranked ids are cached; cards are built fresh, so prices are never an hour old.
 
+## D12 - Launch: free hosting, one address for the shop and the API (Phase 12, 1 Nov 2026)
+
+**Choice (MADHAVAN, 1 Nov 2026): free hosting** - Vercel (React shop), Render free (Spring Boot in Docker, Singapore),
+Aiven free (MySQL). Cost Rs 0. Price: the backend sleeps after 15 idle minutes (first visit then waits ~1 minute),
+so an uptime check pings it during the job hunt. Moving to Railway / a VPS later only needs the same Docker image.
+
+**One address.** The browser only talks to the Vercel address; `vercel.json` passes `/api/...` on to Render
+(a rewrite). So the login cookie and the CSRF cookie are first-party and `SameSite=Lax` keeps working - no
+cross-site cookies, no CORS in normal use (same as EventHub).
+
+```
+ phone --> trivoko.vercel.app --/api/*--> trivoko-api.onrender.com --> Aiven MySQL
+              (React files)                   (Spring Boot, prod)
+```
+
+**512 MB.** Image: JRE only, non-root user, `-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Xss512k`. Prod profile:
+40 Tomcat threads (the Phase 7 load-test machine used 200), 5 database connections, search index in `/tmp`
+(rebuilt from MySQL on every start - D11).
+
+**The visitor's real address.** Behind two proxies `getRemoteAddr()` would always be the proxy, so one person's
+wrong passwords would lock that email for EVERYONE, and all customers would share one flash-sale limit.
+`server.forward-headers-strategy: framework` reads `X-Forwarded-For` (Vercel writes the visitor's address there
+itself) and the `https` scheme. Limit: someone calling the Render address directly can write a fake
+`X-Forwarded-For` and dodge the per-address login lock - the lock is a speed bump, not a wall;
+strong protection would need a shared secret between Vercel and Render (later).
+
+**Security headers** are set by Vercel for the website (`vercel.json`): Content-Security-Policy (scripts only from
+our own address - so the dark-mode script moved from `index.html` into `public/theme.js`; photos from
+`res.cloudinary.com`; uploads to `api.cloudinary.com`), HSTS, nosniff, Referrer-Policy, Permissions-Policy, no
+framing. `npm run preview` sends the same headers, so a CSP mistake shows on the laptop first.

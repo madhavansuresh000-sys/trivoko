@@ -31,7 +31,7 @@ docker rm -f trivoko-load-app 2>$null | Out-Null
 docker run -d --name trivoko-load-app --network trivoko_default -p 8090:8080 `
     -e SPRING_DATASOURCE_URL=jdbc:mysql://trivoko-mysql:3306/trivoko_load `
     -e MYSQL_USER=$($env_['MYSQL_USER']) -e MYSQL_PASSWORD=$($env_['MYSQL_PASSWORD']) `
-    -e TZ=Asia/Kolkata -e MAIL_ENABLED=false -e APP_FLASH_RATE_LIMIT_PER_IP=1000000 trivoko-backend | Out-Null
+    -e TZ=Asia/Kolkata -e MAIL_ENABLED=false -e JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 -e APP_FLASH_RATE_LIMIT_PER_IP=1000000 trivoko-backend | Out-Null
 $log = "$results\app-load.log"
 try {
     $up = $false

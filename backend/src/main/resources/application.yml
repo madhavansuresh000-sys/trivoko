@@ -143,13 +143,28 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # a free hosted MySQL allows only a few connections; a small shop needs only a few
+      maximum-pool-size: ${DB_POOL_SIZE:5}
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+server:
+  # Phase 12: on Render the request comes through Vercel and Render's own proxy, so the "caller" would always be
+  # the proxy. "framework" makes getRemoteAddr() the visitor's address from X-Forwarded-For (login lock and
+  # flash-sale limits are per address) and isSecure() true for HTTPS (secure cookie, HSTS). See decision D12.
+  forward-headers-strategy: framework
+  tomcat:
+    # 512 MB server: far fewer threads than the Phase 7 load-test machine (each thread costs memory)
+    accept-count: 200
+    threads:
+      max: 40
 app:
   jwt:
     secret: ${JWT_SECRET}   # no fallback: the server refuses to start without a real secret
   cookie:
     secure: true
+  search:
+    index-dir: ${SEARCH_INDEX_DIR:/tmp/trivoko-search-index}
