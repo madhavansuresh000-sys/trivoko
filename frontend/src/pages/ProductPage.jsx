@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 
 import { fetchProduct } from '../api/catalog'
 import AlsoBought from '../components/catalog/AlsoBought'
 import PriceTag from '../components/catalog/PriceTag'
+import RecentlyViewed from '../components/catalog/RecentlyViewed'
 import ProductImage from '../components/catalog/ProductImage'
 import ProductReviews from '../components/review/ProductReviews'
 import VariantPicker from '../components/catalog/VariantPicker'
@@ -18,6 +19,7 @@ import { Stars } from '../components/ui/StarRating'
 import WishlistButton from '../components/wishlist/WishlistButton'
 import useAsync, { describeError } from '../hooks/useAsync'
 import { formatRupees } from '../lib/money'
+import { recentlyViewed } from '../lib/recentlyViewed'
 import { addToCart } from '../store/cartSlice'
 import { notify } from '../store/notificationsSlice'
 import NotFoundPage from './NotFoundPage'
@@ -179,6 +181,11 @@ function ProductSkeleton() {
 export default function ProductPage() {
   const { slug } = useParams()
   const { data: product, loading, error } = useAsync(() => fetchProduct(slug), [slug])
+  const productId = product?.id
+  // remembered AFTER the page shows, so the row below lists the products seen before this one
+  useEffect(() => {
+    if (productId) recentlyViewed.add(productId)
+  }, [productId])
 
   if (loading) return <ProductSkeleton />
   if (error) {
@@ -216,6 +223,7 @@ export default function ProductPage() {
       </section>
       <AlsoBought slug={product.slug} />
       <ProductReviews slug={product.slug} />
+      <RecentlyViewed key={product.id} exceptId={product.id} />
     </div>
   )
 }

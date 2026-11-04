@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { fetchProducts } from '../api/catalog'
 import { ProductGrid } from '../components/catalog/ProductCard'
+import RecentlyViewed from '../components/catalog/RecentlyViewed'
 import FlashBanner from '../components/flash/FlashBanner'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -110,6 +111,8 @@ export default function HomePage() {
           </section>
         </>
       )}
+
+      <RecentlyViewed />
 
       <section>
         <SectionTitle title="Shop by category" />

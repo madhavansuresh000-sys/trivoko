@@ -275,6 +275,12 @@ public class ProductService {
 		return cardsInOrder(productIds.stream().filter(live::contains).limit(limit).toList());
 	}
 
+	/** "Recently viewed" (after launch): the LIVE ones among these products, as cards, in this order. */
+	public List<ProductCard> liveCardsInOrder(List<Long> productIds) {
+		Set<Long> live = searchRows(productIds).stream().map(SearchRow::id).collect(Collectors.toSet());
+		return cardsInOrder(productIds.stream().distinct().filter(live::contains).toList());
+	}
+
 	/** Search: cards for these products in exactly this order (the order of relevance). */
 	public List<ProductCard> cardsInOrder(List<Long> productIds) {
 		Map<Long, ProductCard> byId = products.findAllById(productIds).stream()
