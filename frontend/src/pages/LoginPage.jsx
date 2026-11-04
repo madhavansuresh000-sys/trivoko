@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
+import { demoAccountsRequest } from '../api/auth'
 import AuthCard from '../components/auth/AuthCard'
 import Button from '../components/ui/Button'
 import { PasswordField, TextField } from '../components/ui/FormField'
 import useForm from '../hooks/useForm'
 import { guestCart } from '../lib/guestCart'
 import { safeNext } from '../lib/safeNext'
-import { firstName, login, selectUser } from '../store/authSlice'
+import { demoLogin, firstName, login, selectUser } from '../store/authSlice'
 import { mergeGuestCart } from '../store/cartSlice'
 import { notify } from '../store/notificationsSlice'
 import { email, required } from '../utils/validation'
@@ -26,22 +27,46 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState(null)
   const next = safeNext(params.get('next'))
   const guestItems = guestCart.read().length
+  const [demoAccounts, setDemoAccounts] = useState([])
+  const [demoBusy, setDemoBusy] = useState(false)
+
+  // Phase 12: the live demo offers "Try it as ..." buttons (the server sends an empty list when they are off)
+  useEffect(() => {
+    let alive = true
+    demoAccountsRequest().then((list) => alive && setDemoAccounts(list))
+    return () => { alive = false }
+  }, [])
+
+  // after any login: the guest cart joins the saved cart (Phase 3 "done when"), then on to ?next=
+  async function welcome(me) {
+    await dispatch(mergeGuestCart())
+    dispatch(notify(`Welcome back, ${firstName(me)}!`))
+    navigate(next ?? '/', { replace: true })
+  }
+
+  async function tryDemo(key) {
+    setServerError(null)
+    setDemoBusy(true)
+    try {
+      await welcome(await dispatch(demoLogin(key)).unwrap())
+    } catch (e) {
+      setServerError(e.message)
+      setDemoBusy(false)
+    }
+  }
 
   const { field, handleSubmit, submitting } = useForm({ email: '', password: '' }, rules, async (v) => {
     setServerError(null)
     try {
       // POST /api/auth/login: the server checks the BCrypt hash and sets the httpOnly JWT cookie
-      const me = await dispatch(login({ email: v.email.trim(), password: v.password })).unwrap()
-      await dispatch(mergeGuestCart()) // the guest cart joins the saved cart (Phase 3 "done when")
-      dispatch(notify(`Welcome back, ${firstName(me)}!`))
-      navigate(next ?? '/', { replace: true })
+      await welcome(await dispatch(login({ email: v.email.trim(), password: v.password })).unwrap())
     } catch (e) {
       setServerError(e.message) // 401 wrong email or password, 429 locked after 5 tries
     }
   })
 
   // already logged in (e.g. pressed Back after logging in): no need for this page
-  if (user && !submitting) return <Navigate to={next ?? '/'} replace />
+  if (user && !submitting && !demoBusy) return <Navigate to={next ?? '/'} replace />
 
   return (
     <AuthCard
@@ -63,6 +88,22 @@ export default function LoginPage() {
           {submitting ? 'Checking…' : 'Log in'}
         </Button>
       </form>
+      {demoAccounts.length > 0 && (
+        <section aria-labelledby="demo-heading" className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
+          <h2 id="demo-heading" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Just looking around? Try a demo account - no password needed
+          </h2>
+          <div className="mt-3 space-y-2">
+            {demoAccounts.map((a) => (
+              <Button key={a.key} variant="secondary" className="w-full flex-col !items-start text-left"
+                disabled={submitting || demoBusy} onClick={() => tryDemo(a.key)}>
+                <span>Try it as {a.name}</span>
+                <span className="text-xs font-normal text-slate-600 dark:text-slate-300">{a.tryThis}</span>
+              </Button>
+            ))}
+          </div>
+        </section>
+      )}
     </AuthCard>
   )
 }

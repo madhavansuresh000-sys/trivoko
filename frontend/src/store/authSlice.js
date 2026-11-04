@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 
-import { fetchMe, loginRequest, logoutRequest, registerRequest } from '../api/auth'
+import { demoLoginRequest, fetchMe, loginRequest, logoutRequest, registerRequest } from '../api/auth'
 import { describeError } from '../hooks/useAsync'
 
 /**
@@ -22,6 +22,15 @@ export const loadSession = createAsyncThunk('auth/loadSession', async (_, { reje
 export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
   try {
     return await loginRequest(credentials)
+  } catch (e) {
+    return rejectWithValue(describeError(e))
+  }
+})
+
+/** Phase 12: "Try it as Ravi" - logged in without typing a password */
+export const demoLogin = createAsyncThunk('auth/demoLogin', async (key, { rejectWithValue }) => {
+  try {
+    return await demoLoginRequest(key)
   } catch (e) {
     return rejectWithValue(describeError(e))
   }
@@ -64,6 +73,9 @@ const authSlice = createSlice({
         state.status = 'ready'
       })
       .addCase(login.fulfilled, (state, action) => {
+        state.user = action.payload
+      })
+      .addCase(demoLogin.fulfilled, (state, action) => {
         state.user = action.payload
       })
       .addCase(register.fulfilled, (state, action) => {

@@ -1,0 +1,36 @@
+# Uptime check (Phase 12 step 5) = a watchman who knocks on the shop door every 10 minutes.
+# 1. Render's free server falls asleep after 15 minutes without visitors; the next visitor waits ~50 s. A knock every
+#    10 minutes keeps it awake, so a recruiter who opens the link sees the shop at once.
+# 2. If the shop does not answer "UP", this job fails and GitHub e-mails the repo owner - our free alarm.
+# Notes: GitHub may start a scheduled job some minutes late, and switches schedules off after 60 days without a
+# commit (Actions tab -> "Uptime check" -> Enable). Public repo = these minutes are free.
+name: Uptime check
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:   # "Run workflow" button for a check by hand
+
+jobs:
+  ping:
+    name: Is the shop UP?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Backend health (Render)
+        # a sleeping server needs up to ~60 s to wake: try 4 times, 90 s each
+        run: |
+          for try in 1 2 3 4; do
+            body=$(curl -s --max-time 90 https://trivoko-api.onrender.com/api/health || true)
+            echo "try $try: $body"
+            case "$body" in *'"UP"'*) exit 0;; esac
+            sleep 10
+          done
+          echo "::error::trivoko-api did not answer UP"
+          exit 1
+      - name: Shop page (Vercel)
+        # the address the visitors use; also proves Vercel still forwards /api to Render
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://trivoko.vercel.app/api/health)
+          echo "https://trivoko.vercel.app/api/health -> $code"
+          test "$code" = 200

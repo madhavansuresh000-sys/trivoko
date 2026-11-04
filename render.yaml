@@ -35,6 +35,9 @@ services:
       # a long private password for the demo accounts (admin, Ravi, Kavya, the shop owners)
       - key: DEMO_PASSWORD
         sync: false
+      # "Try it as Ravi / Chennai Mobiles" buttons on the login page (decision D13). "true" = on.
+      - key: DEMO_ONE_CLICK
+        value: "false"
       # product photo uploads (sellers): the same free Cloudinary account as on the laptop
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

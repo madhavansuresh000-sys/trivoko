@@ -53,6 +53,9 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/health", "/actuator/health").permitAll()
 				.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/csrf").permitAll()
+				// Phase 12: one-click demo logins (DemoLoginController answers 404 while they are switched off)
+				.requestMatchers(HttpMethod.GET, "/api/auth/demo-accounts").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/demo-login/*").permitAll()
 				// reviews are public to read, but "my review" needs a login (this rule must come BEFORE the GET one)
 				.requestMatchers("/api/products/*/reviews/mine").authenticated()
 				// the shop window is public - anyone may BROWSE (GET only)

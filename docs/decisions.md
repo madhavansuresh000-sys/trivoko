@@ -258,3 +258,22 @@ strong protection would need a shared secret between Vercel and Render (later).
 our own address - so the dark-mode script moved from `index.html` into `public/theme.js`; photos from
 `res.cloudinary.com`; uploads to `api.cloudinary.com`), HSTS, nosniff, Referrer-Policy, Permissions-Policy, no
 framing. `npm run preview` sends the same headers, so a CSP mistake shows on the laptop first.
+
+## D13 - One-click demo logins and the uptime check (Phase 12, 4 Nov 2026) - DRAFT, MADHAVAN to confirm
+
+**Demo logins.** A recruiter will not e-mail us for a password, so the login page can show "Try it as Ravi"
+(customer) and "Try it as Chennai Mobiles" (seller) - one click, the same httpOnly cookie as a normal login
+(`DemoLoginController`). Like the demo phone on a shop counter: anyone may use it, but it is chained to the table.
+
+- **Never the admin**: one stranger could block every shop on the live demo. The admin login stays behind DEMO_PASSWORD.
+- **Off unless asked**: `DEMO_ONE_CLICK` (default `false`); off = empty list and 404, as if the URLs did not exist.
+  Also off while DEMO_PASSWORD is empty, so it can never open accounts that are meant to be locked.
+- A blocked demo account stays blocked; the POST still needs the CSRF token.
+- **Price**: visitors share Ravi and the shop - they may change Ravi's addresses, write reviews as Ravi or edit
+  Chennai Mobiles' products. Acceptable for a demo of test data; if someone misbehaves, the admin blocks the account
+  (the buttons then answer "not available") and the data can be reloaded. Proposed: switch it ON for the job hunt.
+
+**Uptime check** = `.github/workflows/uptime.yml`: GitHub Actions calls `/api/health` every 10 minutes (keeps the
+free Render server awake) and the Vercel `/api/health` (proves the whole path works). A failed run e-mails the repo
+owner - a free alarm. Limits: GitHub may start late, runs only from `main`, and pauses schedules after 60 days
+without a commit. 744 hours awake a month fits Render's 750 free hours for one service.

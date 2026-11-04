@@ -92,6 +92,8 @@ app:
   demo:
     # from .env (DEMO_PASSWORD): the password of the demo accounts (DevDataSeeder); empty = locked
     password: ${DEMO_PASSWORD:}
+    # Phase 12: "Try it as Ravi / Chennai Mobiles" buttons on the login page (never the admin). Decision D13.
+    one-click: ${DEMO_ONE_CLICK:false}
   # Phase 4: where the shop runs (payment pages send the customer back here)
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   # Phase 4 payments: empty key = the built-in TEST payment page (PaymentConfig); keys come from .env
