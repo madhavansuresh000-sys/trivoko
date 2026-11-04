@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,6 +94,41 @@ class DemoLoginTest {
 		@Test
 		void needsTheCsrfTokenLikeEveryPost() throws Exception {
 			mvc.perform(post("/api/auth/demo-login/customer")).andExpect(status().isForbidden());
+		}
+
+		// ---------- DemoGuard: shared accounts may shop and ship, but not write text other visitors see ----------
+
+		@Test
+		void theSharedCustomerCannotWriteAReview() throws Exception {
+			mvc.perform(put("/api/products/volta-v12-5g/reviews/mine").with(csrf()).cookie(Logins.as(mvc, "ravi"))
+					.contentType(MediaType.APPLICATION_JSON).content("{\"rating\":1,\"title\":\"x\",\"body\":\"y\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.detail").value(DemoGuard.MESSAGE));
+		}
+
+		@Test
+		void theSharedSellerCannotCreateOrEditProducts() throws Exception {
+			mvc.perform(post("/api/seller/products").with(csrf()).cookie(Logins.as(mvc, "chennai.mobiles"))
+					.contentType(MediaType.APPLICATION_JSON).content("{}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.detail").value(DemoGuard.MESSAGE));
+		}
+
+		@Test
+		void otherAccountsAreNotLimited() throws Exception {
+			// Kovai Sports is not a shared account: its empty product reaches validation (400), not the guard
+			mvc.perform(post("/api/seller/products").with(csrf()).cookie(Logins.as(mvc, "kovai.sports"))
+					.contentType(MediaType.APPLICATION_JSON).content("{}"))
+				.andExpect(status().isBadRequest());
+		}
+
+		@Test
+		void theSharedCustomerCanStillShop() throws Exception {
+			long variant = jdbc.queryForObject("SELECT v.id FROM product_variants v JOIN products p ON p.id = v.product_id "
+					+ "WHERE p.slug = 'volta-v12-5g' ORDER BY v.id LIMIT 1", Long.class);
+			mvc.perform(put("/api/cart/items/" + variant).with(csrf()).cookie(Logins.as(mvc, "ravi"))
+					.contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":1}"))
+				.andExpect(status().isOk());
 		}
 
 		@Test

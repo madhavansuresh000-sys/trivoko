@@ -269,9 +269,14 @@ framing. `npm run preview` sends the same headers, so a CSP mistake shows on the
 - **Off unless asked**: `DEMO_ONE_CLICK` (default `false`); off = empty list and 404, as if the URLs did not exist.
   Also off while DEMO_PASSWORD is empty, so it can never open accounts that are meant to be locked.
 - A blocked demo account stays blocked; the POST still needs the CSRF token.
-- **Price**: visitors share Ravi and the shop - they may change Ravi's addresses, write reviews as Ravi or edit
-  Chennai Mobiles' products. Acceptable for a demo of test data; if someone misbehaves, the admin blocks the account
-  (the buttons then answer "not available") and the data can be reloaded. Proposed: switch it ON for the job hunt.
+- **Shared, so read-mostly** (`DemoGuard`, added after launch): the shared accounts may shop, pay on the test page,
+  pack, ship and return, but writes that other visitors would SEE - reviews, product create/edit/photos, product
+  questions and answers - answer 403 "create a free account to try this". Other accounts are never limited.
+- **Shelves refilled at night** (`DemoRestockJob`, V13 `demo_stock`): on the demo server only, at 03:30 every sample
+  size goes back up to its starting stock (never down; sold-out-on-purpose sizes and later products untouched).
+  Simple, at a price: units a seller moved into a flash sale come back to normal stock too.
+- If someone still misbehaves, the admin blocks the account (the buttons then answer "not available").
+  Proposed: switch it ON for the job hunt.
 
 **Uptime check** = `.github/workflows/uptime.yml`: GitHub Actions calls `/api/health` every 10 minutes (keeps the
 free Render server awake) and the Vercel `/api/health` (proves the whole path works). A failed run e-mails the repo
