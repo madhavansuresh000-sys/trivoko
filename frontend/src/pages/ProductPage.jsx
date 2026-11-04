@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { fetchProduct } from '../api/catalog'
 import AlsoBought from '../components/catalog/AlsoBought'
+import CompareButton from '../components/catalog/CompareButton'
 import PriceTag from '../components/catalog/PriceTag'
 import RecentlyViewed from '../components/catalog/RecentlyViewed'
 import ProductImage from '../components/catalog/ProductImage'
@@ -215,6 +216,7 @@ export default function ProductPage() {
           {/* key: a different product starts with its own first variant */}
           <BuyBox key={product.id} product={product} />
           <SellerBox seller={product.seller} />
+          <CompareButton key={product.slug} slug={product.slug} />
         </div>
       </div>
       <section className="max-w-3xl">
