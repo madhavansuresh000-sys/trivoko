@@ -9,9 +9,21 @@
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
-> **Status: Phase 11 - Testing & polish** (October 2026): the whole marketplace works - one cart from many sellers and one payment (Phase 4), seller back office (5), admin panel (6), flash sale (7), returns with exact partial refunds (8), verified reviews, wishlist and price-drop alerts (9), typo-tolerant smart search (10). Phase 11 made it portfolio-grade: the whole demo story runs as a browser test in CI, every main page passes an accessibility check in light and dark mode, the home page scores 92 in Lighthouse on a phone, and every push is scanned for leaked secrets and known vulnerabilities. Next: Phase 12 - launch.
+> **Status: Phase 12 - Launch** (November 2026): all 12 build phases are done and on `main` - one cart from many
+> sellers and one payment, seller back office, admin panel, flash sale, returns with exact partial refunds, verified
+> reviews, wishlist and price-drop alerts, typo-tolerant smart search - tested in CI by 398 JUnit tests, 103 Vitest
+> tests, a Playwright browser story, accessibility checks and a security scan. Now going live on free hosting.
 
-## What it will do
+## Live demo
+
+| | |
+|---|---|
+| Shop | **https://trivoko.vercel.app** *(going live in November 2026)* |
+| Try it | Log in -> **"Try it as Ravi"** (customer) or **"Try it as Chennai Mobiles"** (seller) - no password needed |
+| Pay | The built-in **TEST PAYMENT** page - no card, no real money |
+| First visit | The free server sleeps when nobody visits; the first page can take up to a minute, then it is fast |
+
+## What it does
 
 - **Customers** search the catalogue, fill one cart from many sellers, pay once with Stripe, and track one package per seller.
 - **Sellers** (approved by the admin) list products with sizes and colours, ship their own packages and see their earnings.
@@ -35,7 +47,29 @@
 | Database | MySQL 8.4 (Docker) |
 | Payments | Stripe Checkout (test mode), webhooks, partial refunds |
 | Testing | JUnit 5, Testcontainers, ArchUnit, JaCoCo, Vitest, Playwright + axe, k6, Lighthouse |
-| Delivery | Docker, GitHub Actions CI |
+| Delivery | Docker, GitHub Actions (CI + uptime check), Render (API), Vercel (shop), Aiven (MySQL) |
+
+## Architecture
+
+```
+  Browser (phone / laptop)
+     |  https://trivoko.vercel.app  - one address, so the login cookie stays first-party
+     v
+  Vercel ── React app (Vite build, CSP + HSTS headers)
+     |  /api/*  (rewrite)
+     v
+  Render ── Spring Boot 4 in Docker (Java 25, 512 MB)          ┌─> Stripe (test mode) / test payment page
+     |      one app, 17 modules - a module may call another     ├─> Cloudinary (product photos)
+     |      module's SERVICE, never its tables (ArchUnit test)  └─> e-mail (SMTP, optional)
+     |      Lucene search index in /tmp, rebuilt from MySQL on start
+     v
+  Aiven ── MySQL 8.4 (schema owned by Flyway, 12 migrations)
+```
+
+Modules (`backend/src/main/java/com/trivoko/`): `catalog`, `seller`, `cart`, `order`, `payment`, `coupon`,
+`flashsale`, `returns`, `review`, `wishlist`, `search`, `notify`, `analytics`, `admin`, `user`, `auth`, `health`
+(+ `common`, `config`). Why a modular monolith, why Lucene inside the app, why free hosting:
+[docs/decisions.md](docs/decisions.md) (D1-D13).
 
 ## Run it on your laptop
 
@@ -60,10 +94,10 @@ Every push runs four CI jobs - the badge above is green only when all four are:
                 ╱ ╲   a real browser clicks through the real app, real backend, real MySQL:
                ╱   ╲  buy from 2 sellers -> 1 payment -> ship -> deliver -> return -> refund
               ╱─────╲
-             ╱       ╲  Integration (most of the 392 JUnit tests: Testcontainers)
+             ╱       ╲  Integration (most of the 398 JUnit tests: Testcontainers)
             ╱         ╲   each API with a real MySQL: rules, security, money, races (10 clicks = 1 refund)
            ╱───────────╲
-          ╱             ╲  Unit + component (101 Vitest + the plain JUnit tests)
+          ╱             ╲  Unit + component (103 Vitest + the plain JUnit tests)
          ╱               ╲   one function or one screen alone, e.g. the order splitter, the search box
         ─────────────────────
    many, fast, narrow  at the bottom  ->  few, slow, the whole story  at the top
@@ -71,9 +105,9 @@ Every push runs four CI jobs - the badge above is green only when all four are:
 
 | Check | Result | Where |
 |---|---|---|
-| Backend tests | 392 green | `backend/src/test` |
+| Backend tests | 398 green | `backend/src/test` |
 | Coverage of the services | 91.7% of lines - the build **fails below 80%** (JaCoCo check) | CI artifact `coverage-report` |
-| Frontend tests | 101 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
+| Frontend tests | 103 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
 | Demo story in a real browser | green in CI | `e2e/tests/demo-story.spec.js` |
 | Accessibility (axe, WCAG 2.1 AA) | every main page, light + laptop and dark + phone: no serious problems | `e2e/tests/accessibility.spec.js` |
 | Lighthouse, home page, phone profile | Performance 92 · Accessibility 100 · Best practices 96 · SEO 100 | self-hosted font, lazy pages, no layout jump |
@@ -349,7 +383,8 @@ Swagger (`/swagger-ui.html`) is for the admin only. Every admin action is writte
 
 ### Demo logins
 
-Set `DEMO_PASSWORD` (and `JWT_SECRET`, 32+ characters) in `.env`; on start-up the backend gives that
+On the live site the login page has one-click **"Try it as ..."** buttons for Ravi and Chennai Mobiles (never the
+admin) - switched on with `DEMO_ONE_CLICK=true`, decision D13. On your laptop: set `DEMO_PASSWORD` (and `JWT_SECRET`, 32+ characters) in `.env`; on start-up the backend gives that
 password to the demo accounts. Empty = the demo accounts stay locked. The password is never in Git.
 
 | Email | Role | Use it for |
@@ -360,6 +395,19 @@ password to the demo accounts. Empty = the demo accounts stay locked. The passwo
 | `erode.organics@trivoko.test` | CUSTOMER | Shop application still pending - try the admin approval |
 
 Postman: `npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<your DEMO_PASSWORD>`
+
+## How it is deployed (Phase 12)
+
+| Piece | Where | How it gets there |
+|---|---|---|
+| MySQL | Aiven free (Bengaluru) | created once in the Aiven console; Flyway builds the tables on the first start |
+| API | Render free, Docker (`backend/Dockerfile`, Singapore) | `render.yaml` Blueprint; secrets typed in the Render dashboard, never in Git; health check `/api/health` |
+| Shop | Vercel (root `frontend/`) | `frontend/vercel.json`: `/api/*` -> Render, every other path -> `index.html`, security headers |
+| Awake + alarm | GitHub Actions `uptime.yml` | pings every 10 minutes; a failed run e-mails the owner |
+
+The `prod` profile reads everything from environment variables (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`,
+`FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `DEMO_PASSWORD`, `DEMO_ONE_CLICK`, Cloudinary and Stripe keys) and refuses to
+start without a real `JWT_SECRET`. Test the production image on a laptop: `docker build -t trivoko-backend backend`.
 
 ## Project folders
 
