@@ -182,6 +182,21 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
 
+### After launch: questions, compare, recently viewed, installable app
+
+| URL / page | Who | What it does |
+|---|---|---|
+| `GET /api/products/{slug}/questions?page=` | anyone | Questions about a product, newest first, with the seller's answers ("Asked by Ravi K.") |
+| `POST /api/products/{slug}/questions` `{question}` | logged in | Ask the seller (10-300 characters, at most 3 unanswered per product); the shop owner gets a bell |
+| `GET /api/seller/questions?answered=`, `PUT .../{id}/answer` `{answer}` | the product's shop | Answer (or correct an answer); the shopper gets a bell + email once. Another shop = 403 |
+| `GET /api/products/cards?ids=3,17,42` | anyone | "Recently viewed": fresh cards in that order, only products still on sale, at most 12 |
+| `/compare?p=a,b` | anyone | Two products side by side (price - the cheaper one marked, lowest in 30 days, rating, colours, sizes, stock) |
+| Install | phone | `manifest.webmanifest` + `public/sw.js`: pages work offline from the saved app shell; `/api` is never cached |
+
+Pages: "Questions & answers" under the reviews, `/seller/questions`, a "Compare" tick and a "Recently viewed" row on
+the product page and the home page. The browser keeps only product ids / slugs (never prices). Migration
+`V14__product_questions.sql`. On the live demo the shared accounts may not post questions or answers (D13).
+
 ### Smart search (Phase 10)
 
 A good shop assistant understands "iphnoe" means iPhone, and says "we have 3 cases and 2 chargers" before you ask.

@@ -119,8 +119,8 @@ public class ReviewService {
 				r.getCreatedAt(), r.getUpdatedAt());
 	}
 
-	/** "Ravi Kumar" -> "Ravi K." (privacy: other shoppers never see a full name). */
-	static String shortName(String fullName) {
+	/** "Ravi Kumar" -> "Ravi K." (privacy: other shoppers never see a full name). Also used by product questions. */
+	public static String shortName(String fullName) {
 		if (fullName == null || fullName.isBlank()) {
 			return "TriVoKo customer";
 		}

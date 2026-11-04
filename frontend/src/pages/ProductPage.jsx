@@ -8,6 +8,7 @@ import CompareButton from '../components/catalog/CompareButton'
 import PriceTag from '../components/catalog/PriceTag'
 import RecentlyViewed from '../components/catalog/RecentlyViewed'
 import ProductImage from '../components/catalog/ProductImage'
+import ProductQuestions from '../components/question/ProductQuestions'
 import ProductReviews from '../components/review/ProductReviews'
 import VariantPicker from '../components/catalog/VariantPicker'
 import Badge from '../components/ui/Badge'
@@ -225,6 +226,7 @@ export default function ProductPage() {
       </section>
       <AlsoBought slug={product.slug} />
       <ProductReviews slug={product.slug} />
+      <ProductQuestions slug={product.slug} shopName={product.seller.shopName} />
       <RecentlyViewed key={product.id} exceptId={product.id} />
     </div>
   )

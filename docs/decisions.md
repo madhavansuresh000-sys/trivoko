@@ -282,3 +282,19 @@ framing. `npm run preview` sends the same headers, so a CSP mistake shows on the
 free Render server awake) and the Vercel `/api/health` (proves the whole path works). A failed run e-mails the repo
 owner - a free alarm. Limits: GitHub may start late, runs only from `main`, and pauses schedules after 60 days
 without a commit. 744 hours awake a month fits Render's 750 free hours for one service.
+
+## D14 - After launch: questions, compare, recently viewed, installable app (4 Nov 2026)
+
+MADHAVAN asked for "all" four improvement directions; these defaults were chosen (change any of them later):
+
+- **Product questions** get their own module `question` (owns `product_questions`), not part of reviews: anyone
+  logged in may ask (a review needs a delivered package), only the product's shop answers. `seller_id` is copied
+  in when the question is asked, so the seller's list needs no join into the catalogue's tables (module rule).
+  Spam limit: 3 unanswered questions per shopper per product. The shopper's bell + email rings once - a corrected
+  answer does not ring again.
+- **Recently viewed** and **compare** live in the browser (localStorage) as ids / slugs only - like the guest cart,
+  prices always come fresh from the server, so a stored old price can never be shown or used.
+- **Installable app (PWA)** with a hand-written 50-line service worker instead of a plugin: pages network-first
+  with the saved app shell for offline, hashed `/assets` cache-first, and `/api` never cached (prices, stock, orders
+  and logins must be live). Only the production build registers it; `npm run dev` stays plain.
+
