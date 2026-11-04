@@ -795,6 +795,24 @@
               }
             }
           ]
+        },
+        {
+          "name": "Demo login buttons (Phase 12; empty unless DEMO_ONE_CLICK=true)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/demo-accounts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test(\"a list, never the admin\", () => { const j = pm.response.json(); pm.expect(j).to.be.an('array'); pm.expect(j.map(a => a.key)).to.not.include('admin'); });"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

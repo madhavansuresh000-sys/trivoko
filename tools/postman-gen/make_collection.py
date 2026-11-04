@@ -160,6 +160,9 @@ folders = [
                  "description": "Should never be saved", "variants": [{"label": "1 kg", "price": 100, "mrp": 120, "stock": 1}]}),
         req("Logout", "POST", "/api/auth/logout", [status(204, "No Content")]),
         req("Who am I after logout -> 401", "GET", "/api/auth/me", [status(401, "Unauthorized")]),
+        req("Demo login buttons (Phase 12; empty unless DEMO_ONE_CLICK=true)", "GET", "/api/auth/demo-accounts", [
+            ok, check("a list, never the admin", "pm.expect(j).to.be.an('array'); pm.expect(j.map(a => a.key)).to.not.include('admin')"),
+        ]),
     ]),
     ("8. Search & cart (Phase 3)", [
         req("Search 'volta cover'", "GET", "/api/products", [
