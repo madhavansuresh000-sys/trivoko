@@ -16,6 +16,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.trivoko.support.PriceHistorySnapshot;
+
 /**
  * Phase 9 step 5 - "Lowest price in 30 days" on the product page (from price_history), and the stars on cards.
  * The badge "Lowest in 30 days" shows only when the price really moved in that window and today's price is the
@@ -42,14 +44,19 @@ class LowestPriceTest {
 
 	private BigDecimal mrp;
 
+	private PriceHistorySnapshot history;
+
 	@BeforeEach
 	void setUp() {
+		history = PriceHistorySnapshot.take(jdbc);
 		volta = jdbc.queryForObject("SELECT id FROM products WHERE slug = 'volta-v12-5g'", Long.class);
 		Map<String, Object> v = jdbc.queryForMap(
 				"SELECT id, price, mrp FROM product_variants WHERE product_id = ? ORDER BY price, id LIMIT 1", volta);
 		cheapest = ((Number) v.get("id")).longValue();
 		price = (BigDecimal) v.get("price");
 		mrp = (BigDecimal) v.get("mrp");
+		// start from "this price never moved": the sample data gives the Volta some history (put back after)
+		jdbc.update("DELETE h FROM price_history h JOIN product_variants v ON v.id = h.variant_id WHERE v.product_id = ?", volta);
 	}
 
 	@AfterEach
@@ -58,7 +65,7 @@ class LowestPriceTest {
 		jdbc.update("UPDATE products SET price_from = ?, mrp_from = ?, rating_avg = NULL, rating_count = 0 WHERE id = ?",
 				price, mrp, volta);
 		jdbc.update("UPDATE products SET rating_avg = NULL, rating_count = 0");
-		jdbc.update("DELETE FROM price_history");
+		history.restore(); // not a plain DELETE: keep the sample history
 		jdbc.update("DELETE FROM audit_log WHERE action = 'PRICE_CHANGED'");
 	}
 
