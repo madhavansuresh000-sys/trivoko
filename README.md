@@ -11,7 +11,7 @@
 
 > **Status: Phase 12 - Launch** (November 2026): all 12 build phases are done and on `main` - one cart from many
 > sellers and one payment, seller back office, admin panel, flash sale, returns with exact partial refunds, verified
-> reviews, wishlist and price-drop alerts, typo-tolerant smart search - tested in CI by 398 JUnit tests, 103 Vitest
+> reviews, wishlist and price-drop alerts, typo-tolerant smart search - tested in CI by 413 JUnit tests, 117 Vitest
 > tests, a Playwright browser story, accessibility checks and a security scan. Now going live on free hosting.
 
 ## Live demo
@@ -59,15 +59,15 @@
      |  /api/*  (rewrite)
      v
   Render ── Spring Boot 4 in Docker (Java 25, 512 MB)          ┌─> Stripe (test mode) / test payment page
-     |      one app, 17 modules - a module may call another     ├─> Cloudinary (product photos)
+     |      one app, 18 modules - a module may call another     ├─> Cloudinary (product photos)
      |      module's SERVICE, never its tables (ArchUnit test)  └─> e-mail (SMTP, optional)
      |      Lucene search index in /tmp, rebuilt from MySQL on start
      v
-  Aiven ── MySQL 8.4 (schema owned by Flyway, 12 migrations)
+  Aiven ── MySQL 8.4 (schema owned by Flyway, 14 migrations)
 ```
 
 Modules (`backend/src/main/java/com/trivoko/`): `catalog`, `seller`, `cart`, `order`, `payment`, `coupon`,
-`flashsale`, `returns`, `review`, `wishlist`, `search`, `notify`, `analytics`, `admin`, `user`, `auth`, `health`
+`flashsale`, `returns`, `review`, `question`, `wishlist`, `search`, `notify`, `analytics`, `admin`, `user`, `auth`, `health`
 (+ `common`, `config`). Why a modular monolith, why Lucene inside the app, why free hosting:
 [docs/decisions.md](docs/decisions.md) (D1-D13).
 
@@ -94,10 +94,10 @@ Every push runs four CI jobs - the badge above is green only when all four are:
                 ╱ ╲   a real browser clicks through the real app, real backend, real MySQL:
                ╱   ╲  buy from 2 sellers -> 1 payment -> ship -> deliver -> return -> refund
               ╱─────╲
-             ╱       ╲  Integration (most of the 398 JUnit tests: Testcontainers)
+             ╱       ╲  Integration (most of the 413 JUnit tests: Testcontainers)
             ╱         ╲   each API with a real MySQL: rules, security, money, races (10 clicks = 1 refund)
            ╱───────────╲
-          ╱             ╲  Unit + component (103 Vitest + the plain JUnit tests)
+          ╱             ╲  Unit + component (117 Vitest + the plain JUnit tests)
          ╱               ╲   one function or one screen alone, e.g. the order splitter, the search box
         ─────────────────────
    many, fast, narrow  at the bottom  ->  few, slow, the whole story  at the top
@@ -105,9 +105,9 @@ Every push runs four CI jobs - the badge above is green only when all four are:
 
 | Check | Result | Where |
 |---|---|---|
-| Backend tests | 398 green | `backend/src/test` |
+| Backend tests | 413 green | `backend/src/test` |
 | Coverage of the services | 91.7% of lines - the build **fails below 80%** (JaCoCo check) | CI artifact `coverage-report` |
-| Frontend tests | 103 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
+| Frontend tests | 117 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
 | Demo story in a real browser | green in CI | `e2e/tests/demo-story.spec.js` |
 | Accessibility (axe, WCAG 2.1 AA) | every main page, light + laptop and dark + phone: no serious problems | `e2e/tests/accessibility.spec.js` |
 | Lighthouse, home page, phone profile | Performance 92 · Accessibility 100 · Best practices 96 · SEO 100 | self-hosted font, lazy pages, no layout jump |

@@ -2,6 +2,7 @@ package com.trivoko.auth;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -38,8 +39,13 @@ public class DemoGuard implements HandlerInterceptor, WebMvcConfigurer {
 
 	private final DemoAccounts demoAccounts;
 
-	public DemoGuard(DemoAccounts demoAccounts) {
-		this.demoAccounts = demoAccounts;
+	/**
+	 * Built from the same two settings as the DemoAccounts bean, not injected: a web config is also loaded by the
+	 * slim @WebMvcTest tests, which do not create normal @Component beans.
+	 */
+	public DemoGuard(@Value("${app.demo.one-click:false}") boolean oneClick,
+			@Value("${app.demo.password:}") String demoPassword) {
+		this.demoAccounts = new DemoAccounts(oneClick, demoPassword);
 	}
 
 	@Override
