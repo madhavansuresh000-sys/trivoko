@@ -7,6 +7,10 @@
 
 <p align="center">
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/tests-413%20JUnit%20%7C%20117%20Vitest%20%7C%20Playwright-0f766e" alt="Tests: 413 JUnit, 117 Vitest, Playwright" />
+  <img src="https://img.shields.io/badge/line%20coverage-91.6%25%20(JaCoCo)-0f766e" alt="Line coverage 91.6% (JaCoCo)" />
+  <img src="https://img.shields.io/badge/Java%2025-Spring%20Boot%204.1-0f766e" alt="Java 25, Spring Boot 4.1" />
+  <img src="https://img.shields.io/badge/React%2019-Vite%20%2B%20Tailwind%20v4-0f766e" alt="React 19, Vite, Tailwind v4" />
 </p>
 
 > **Status: Phase 12 - Launch** (November 2026): all 12 build phases are done and on `main` - one cart from many
@@ -65,6 +69,9 @@
      v
   Aiven ── MySQL 8.4 (schema owned by Flyway, 14 migrations)
 ```
+
+**Database:** 30 tables in MySQL - see the [ER diagram](docs/er-diagram.md) (drawn by GitHub from text) and the
+three ideas behind it: one order -> one package per seller, money as a ledger, history tables instead of overwriting.
 
 Modules (`backend/src/main/java/com/trivoko/`): `catalog`, `seller`, `cart`, `order`, `payment`, `coupon`,
 `flashsale`, `returns`, `review`, `question`, `wishlist`, `search`, `notify`, `analytics`, `admin`, `user`, `auth`, `health`
@@ -334,6 +341,8 @@ results in `load-tests/results`):
 |---|---|---|---|---|---|---|---|
 | burst - 5,000 users press at the same instant | 5,600 (~1,480/s) | **100** | 4,900 | **0** | **0** | 1,082 ms | 681 ms |
 | spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | 517 ms | 2.4 ms |
+
+![k6 flash sale burst: requests per second and median wait](docs/k6-flash-sale.png)
 
 The database agreed after both runs: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven; speed in
 the burst is above the 500 ms target (see decision D8 in `docs/decisions.md`).
