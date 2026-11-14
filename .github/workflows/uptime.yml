@@ -28,6 +28,13 @@ jobs:
           done
           echo "::error::trivoko-api did not answer UP"
           exit 1
+      - name: Database awake (Aiven)
+        # /api/health never touches the database. Aiven's FREE MySQL powers itself off when nobody uses it (it slept
+        # twice before launch), so this knock reads one product: a real query that also keeps the database awake.
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 'https://trivoko-api.onrender.com/api/products?size=1')
+          echo "/api/products?size=1 -> $code"
+          test "$code" = 200
       - name: Shop page (Vercel)
         # the address the visitors use; also proves Vercel still forwards /api to Render
         run: |
