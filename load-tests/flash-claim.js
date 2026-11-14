@@ -87,7 +87,11 @@ export default function () {
     return
   }
   const person = SHAPE === 'burst' ? __VU - 1 : exec.scenario.iterationInTest
-  const user = users[person % users.length]
+  // "1,000 a second for 5 s" can start one extra iteration at the very end (5,001 on 14 Nov 2026). It reused person
+  // #1, who had already claimed, and the app rightly said "already claimed" - not a sale bug, but it is not a new
+  // person either, so it is skipped: every person presses exactly once.
+  if (person >= users.length) return
+  const user = users[person]
   const res = http.post(`${BASE}/api/flash-sales/items/${ITEM}/claim`, null, {
     headers: { 'X-XSRF-TOKEN': 'load-test', Cookie: `TRIVOKO_TOKEN=${loginCookie(user)}; XSRF-TOKEN=load-test` },
   })

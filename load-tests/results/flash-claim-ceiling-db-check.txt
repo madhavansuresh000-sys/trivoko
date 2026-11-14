@@ -1,0 +1,1 @@
+sold=0 claim_rows=0 different_people=0 k6_exit=0

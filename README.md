@@ -357,15 +357,17 @@ How it stays correct:
 **Load test** (k6 in Docker, app in Docker, one laptop; `powershell -File load-tests\run-flash-load.ps1 [-Shape burst|spread]`,
 results in `load-tests/results`):
 
+Measured again on 14 Nov 2026:
+
 | Shape | Requests | Winners | Sold out | Errors | Oversell | p95 | median |
 |---|---|---|---|---|---|---|---|
-| burst - 5,000 users press at the same instant | 5,600 (~1,480/s) | **100** | 4,900 | **0** | **0** | 1,082 ms | 681 ms |
-| spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | 517 ms | 2.4 ms |
+| burst - 5,000 users press at the same instant | 5,000 (~1,280/s) | **100** | 4,900 | **0** | **0** | 1,084 ms | 686 ms |
+| spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | **308 ms** | 2.4 ms |
+| ceiling - the same burst at `/api/health` (does no work) | 5,000 (~1,560/s) | - | - | **0** | - | 246 ms | 175 ms |
 
-![k6 flash sale burst: requests per second and median wait](docs/k6-flash-sale.png)
-
-The database agreed after both runs: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven; speed in
-the burst is above the 500 ms target (see decision D8 in `docs/decisions.md`).
+The database agreed after every run: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven. At a
+normal sale start (spread) p95 is 308 ms - inside the 500 ms target. In the worst case (burst) the claim waits about 4x
+longer than the laptop's own ceiling, because everyone queues for one locked row - see decision D8.
 
 ### Checkout & payments (Phase 4)
 

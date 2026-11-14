@@ -159,8 +159,23 @@ shapes. p95 = 1,082 ms when all 5,000 press at the same instant (median 681 ms),
 **Redis?** The plan said: if p95 is above 500 ms, try Redis `DECR` and measure again. The p95 is above, but the cost
 is everyone waiting in line for one hot row on a single laptop that also runs k6 and MySQL - the answer was always
 right. **Decision: keep MySQL only for now** (one fewer service to host, no second copy of the stock that could drift).
-**Still to do together:** run the `ceiling` shape (5,000 at `/api/health`) to see how much of the 1 s is the laptop
-itself; only if the claim is clearly slower than that ceiling, build the Redis `DECR` version and record both graphs.
+**Ceiling measured (14 Nov 2026, same laptop, all three shapes re-run):**
+
+| Shape | p95 | median | Result |
+|---|---|---|---|
+| burst - claim | 1,084 ms | 686 ms | 100 / 4,900 / 0 errors / 0 oversell |
+| spread - claim | **308 ms** | 2.4 ms | 100 / 4,900 / 0 errors / 0 oversell |
+| ceiling - the burst at `/api/health` | 246 ms | 175 ms | the laptop's own limit |
+
+So in the worst-case burst the claim is about 4x slower than the ceiling: the extra time is the queue for one locked
+row, not the laptop. At a normal sale start (spread) it is well inside the 500 ms target.
+
+**Recommendation (MADHAVAN to confirm):** keep MySQL only. Answers are always right; the realistic shape meets the
+target; Redis would be a second service to host and a second copy of the stock that can drift. If a real sale ever
+needed it, the next step is Redis `DECR` as a fast gate in front of the same UPDATE (MySQL stays the judge), measured
+with these same three shapes. Graph: `docs/k6-flash-sale.png`.
+(The k6 script now skips one extra iteration that "1,000 a second for 5 s" can start at the very end - it reused
+person #1, and the app rightly answered "already claimed".)
 
 ## D9 - Returns: a state machine, money fixed at asking, refund in its own transaction (Phase 8, 22 Oct 2026)
 
