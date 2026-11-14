@@ -142,7 +142,7 @@ back only those rows. A "sale" is a package that is not cancelled or expired, th
 **Likes helper.** Search boxes go through `Likes.contains(text)`, which escapes `%` and `_` so typing `100%` searches
 for that text and cannot turn into a wildcard.
 
-## D8 - Flash sale: one atomic UPDATE in MySQL; Redis not added yet (Phase 7, 22 Oct 2026)
+## D8 - Flash sale: one atomic UPDATE in MySQL, no Redis (Phase 7, 22 Oct 2026; decided 14 Nov 2026)
 
 **The claim.** `UPDATE ... SET sold = sold + 1 WHERE id = ? AND sold < quantity AND <sale is live>` is a check and a
 change in one locked step. The wrong way - read `sold`, compare in Java, write `sold + 1` - lets two requests read 99
@@ -170,7 +170,7 @@ right. **Decision: keep MySQL only for now** (one fewer service to host, no seco
 So in the worst-case burst the claim is about 4x slower than the ceiling: the extra time is the queue for one locked
 row, not the laptop. At a normal sale start (spread) it is well inside the 500 ms target.
 
-**Recommendation (MADHAVAN to confirm):** keep MySQL only. Answers are always right; the realistic shape meets the
+**Decided 14 Nov 2026 - MADHAVAN chose: keep MySQL only.** Answers are always right; the realistic shape meets the
 target; Redis would be a second service to host and a second copy of the stock that can drift. If a real sale ever
 needed it, the next step is Redis `DECR` as a fast gate in front of the same UPDATE (MySQL stays the judge), measured
 with these same three shapes. Graph: `docs/k6-flash-sale.png`.
