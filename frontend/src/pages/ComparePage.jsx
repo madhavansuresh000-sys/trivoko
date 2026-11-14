@@ -80,7 +80,9 @@ export default function ComparePage() {
               {products.map((p) => (
                 <th key={p.id} scope="col" className="p-2 text-left align-top font-normal">
                   <Link to={`/products/${p.slug}`} className="block space-y-2">
-                    <ProductImage src={p.images[0]?.url} alt={p.name} categorySlug={p.category.slug} brand={p.brand} />
+                    {/* capped: on a laptop a full-width square pushed the comparison rows below the screen */}
+                    <ProductImage src={p.images[0]?.url} alt={p.name} categorySlug={p.category.slug} brand={p.brand}
+                      className="max-w-48" />
                     <span className="block font-semibold text-slate-900 hover:underline dark:text-white">{p.name}</span>
                   </Link>
                 </th>

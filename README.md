@@ -27,6 +27,26 @@
 | Pay | The built-in **TEST PAYMENT** page - no card, no real money |
 | First visit | The free server sleeps when nobody visits; the first page can take up to a minute, then it is fast |
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Home page](docs/screenshots/01-home.png) | ![Search forgives the typo "earbds"](docs/screenshots/02-search-typo.png) |
+| **Home** - categories, banner, top deals | **Smart search** - "earbds" still finds the earbuds, with counts per filter |
+| ![Product page](docs/screenshots/03-product.png) | ![Compare two products](docs/screenshots/04-compare.png) |
+| **Product** - variants, "lowest price in 30 days", sold by which shop | **Compare** - two products side by side, the cheaper one marked |
+| ![Customer orders](docs/screenshots/05-customer-orders.png) | ![Seller dashboard](docs/screenshots/06-seller-dashboard.png) |
+| **My orders** - one payment, split into packages per seller | **Seller dashboard** - to pack, low stock, balance, packages to ship |
+
+<p align="center">
+  <img src="docs/screenshots/08-phone-dark-home.png" width="240" alt="Home page on a phone in dark mode" />
+  &nbsp;
+  <img src="docs/screenshots/09-phone-dark-product.png" width="240" alt="Product page on a phone in dark mode" />
+  &nbsp;
+  <img src="docs/screenshots/07-seller-analytics.png" width="420" alt="Seller analytics chart for 90 days" />
+  <br/><em>Phone + dark mode, and the seller's sales chart</em>
+</p>
+
 ## What it does
 
 - **Customers** search the catalogue, fill one cart from many sellers, pay once with Stripe, and track one package per seller.
