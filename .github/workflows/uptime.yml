@@ -7,8 +7,10 @@
 name: Uptime check
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'
+  # PAUSED until the site is live (14 Nov 2026): without Render + Vercel running, every knock would fail and e-mail
+  # the owner every 10 minutes. On launch day remove the "#" from the two lines below and push.
+  # schedule:
+  #   - cron: '*/10 * * * *'
   workflow_dispatch:   # "Run workflow" button for a check by hand
 
 jobs:
