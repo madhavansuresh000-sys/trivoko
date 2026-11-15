@@ -7,11 +7,47 @@
 
 <p align="center">
   <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/tests-413%20JUnit%20%7C%20117%20Vitest%20%7C%20Playwright-0f766e" alt="Tests: 413 JUnit, 117 Vitest, Playwright" />
+  <img src="https://img.shields.io/badge/line%20coverage-91.6%25%20(JaCoCo)-0f766e" alt="Line coverage 91.6% (JaCoCo)" />
+  <img src="https://img.shields.io/badge/Java%2025-Spring%20Boot%204.1-0f766e" alt="Java 25, Spring Boot 4.1" />
+  <img src="https://img.shields.io/badge/React%2019-Vite%20%2B%20Tailwind%20v4-0f766e" alt="React 19, Vite, Tailwind v4" />
 </p>
 
-> **Status: Phase 11 - Testing & polish** (October 2026): the whole marketplace works - one cart from many sellers and one payment (Phase 4), seller back office (5), admin panel (6), flash sale (7), returns with exact partial refunds (8), verified reviews, wishlist and price-drop alerts (9), typo-tolerant smart search (10). Phase 11 made it portfolio-grade: the whole demo story runs as a browser test in CI, every main page passes an accessibility check in light and dark mode, the home page scores 92 in Lighthouse on a phone, and every push is scanned for leaked secrets and known vulnerabilities. Next: Phase 12 - launch.
+> **Status: Phase 12 - Launch** (November 2026): all 12 build phases are done and on `main` - one cart from many
+> sellers and one payment, seller back office, admin panel, flash sale, returns with exact partial refunds, verified
+> reviews, wishlist and price-drop alerts, typo-tolerant smart search - tested in CI by 413 JUnit tests, 117 Vitest
+> tests, a Playwright browser story, accessibility checks and a security scan. Now going live on free hosting.
 
-## What it will do
+## Live demo
+
+| | |
+|---|---|
+| Shop | **https://trivoko.vercel.app** *(going live in November 2026)* |
+| Try it | Log in -> **"Try it as Ravi"** (customer) or **"Try it as Chennai Mobiles"** (seller) - no password needed |
+| Pay | The built-in **TEST PAYMENT** page - no card, no real money |
+| First visit | The free server sleeps when nobody visits; the first page can take up to a minute, then it is fast |
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Home page](docs/screenshots/01-home.png) | ![Search forgives the typo "earbds"](docs/screenshots/02-search-typo.png) |
+| **Home** - categories, banner, top deals | **Smart search** - "earbds" still finds the earbuds, with counts per filter |
+| ![Product page](docs/screenshots/03-product.png) | ![Compare two products](docs/screenshots/04-compare.png) |
+| **Product** - variants, "lowest price in 30 days", sold by which shop | **Compare** - two products side by side, the cheaper one marked |
+| ![Customer orders](docs/screenshots/05-customer-orders.png) | ![Seller dashboard](docs/screenshots/06-seller-dashboard.png) |
+| **My orders** - one payment, split into packages per seller | **Seller dashboard** - to pack, low stock, balance, packages to ship |
+
+<p align="center">
+  <img src="docs/screenshots/08-phone-dark-home.png" width="240" alt="Home page on a phone in dark mode" />
+  &nbsp;
+  <img src="docs/screenshots/09-phone-dark-product.png" width="240" alt="Product page on a phone in dark mode" />
+  &nbsp;
+  <img src="docs/screenshots/07-seller-analytics.png" width="420" alt="Seller analytics chart for 90 days" />
+  <br/><em>Phone + dark mode, and the seller's sales chart</em>
+</p>
+
+## What it does
 
 - **Customers** search the catalogue, fill one cart from many sellers, pay once with Stripe, and track one package per seller.
 - **Sellers** (approved by the admin) list products with sizes and colours, ship their own packages and see their earnings.
@@ -35,7 +71,32 @@
 | Database | MySQL 8.4 (Docker) |
 | Payments | Stripe Checkout (test mode), webhooks, partial refunds |
 | Testing | JUnit 5, Testcontainers, ArchUnit, JaCoCo, Vitest, Playwright + axe, k6, Lighthouse |
-| Delivery | Docker, GitHub Actions CI |
+| Delivery | Docker, GitHub Actions (CI + uptime check), Render (API), Vercel (shop), Aiven (MySQL) |
+
+## Architecture
+
+```
+  Browser (phone / laptop)
+     |  https://trivoko.vercel.app  - one address, so the login cookie stays first-party
+     v
+  Vercel ── React app (Vite build, CSP + HSTS headers)
+     |  /api/*  (rewrite)
+     v
+  Render ── Spring Boot 4 in Docker (Java 25, 512 MB)          ┌─> Stripe (test mode) / test payment page
+     |      one app, 18 modules - a module may call another     ├─> Cloudinary (product photos)
+     |      module's SERVICE, never its tables (ArchUnit test)  └─> e-mail (SMTP, optional)
+     |      Lucene search index in /tmp, rebuilt from MySQL on start
+     v
+  Aiven ── MySQL 8.4 (schema owned by Flyway, 14 migrations)
+```
+
+**Database:** 30 tables in MySQL - see the [ER diagram](docs/er-diagram.md) (drawn by GitHub from text) and the
+three ideas behind it: one order -> one package per seller, money as a ledger, history tables instead of overwriting.
+
+Modules (`backend/src/main/java/com/trivoko/`): `catalog`, `seller`, `cart`, `order`, `payment`, `coupon`,
+`flashsale`, `returns`, `review`, `question`, `wishlist`, `search`, `notify`, `analytics`, `admin`, `user`, `auth`, `health`
+(+ `common`, `config`). Why a modular monolith, why Lucene inside the app, why free hosting:
+[docs/decisions.md](docs/decisions.md) (D1-D13).
 
 ## Run it on your laptop
 
@@ -60,10 +121,10 @@ Every push runs four CI jobs - the badge above is green only when all four are:
                 ╱ ╲   a real browser clicks through the real app, real backend, real MySQL:
                ╱   ╲  buy from 2 sellers -> 1 payment -> ship -> deliver -> return -> refund
               ╱─────╲
-             ╱       ╲  Integration (most of the 392 JUnit tests: Testcontainers)
+             ╱       ╲  Integration (most of the 413 JUnit tests: Testcontainers)
             ╱         ╲   each API with a real MySQL: rules, security, money, races (10 clicks = 1 refund)
            ╱───────────╲
-          ╱             ╲  Unit + component (101 Vitest + the plain JUnit tests)
+          ╱             ╲  Unit + component (117 Vitest + the plain JUnit tests)
          ╱               ╲   one function or one screen alone, e.g. the order splitter, the search box
         ─────────────────────
    many, fast, narrow  at the bottom  ->  few, slow, the whole story  at the top
@@ -71,9 +132,9 @@ Every push runs four CI jobs - the badge above is green only when all four are:
 
 | Check | Result | Where |
 |---|---|---|
-| Backend tests | 392 green | `backend/src/test` |
+| Backend tests | 413 green | `backend/src/test` |
 | Coverage of the services | 91.7% of lines - the build **fails below 80%** (JaCoCo check) | CI artifact `coverage-report` |
-| Frontend tests | 101 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
+| Frontend tests | 117 green (Vitest + Testing Library) | `frontend/src/**/*.test.jsx` |
 | Demo story in a real browser | green in CI | `e2e/tests/demo-story.spec.js` |
 | Accessibility (axe, WCAG 2.1 AA) | every main page, light + laptop and dark + phone: no serious problems | `e2e/tests/accessibility.spec.js` |
 | Lighthouse, home page, phone profile | Performance 92 · Accessibility 100 · Best practices 96 · SEO 100 | self-hosted font, lazy pages, no layout jump |
@@ -147,6 +208,21 @@ Shop owners get a bell + email when their shop is approved, rejected, blocked or
 (approved products: bell only). Pages: `/admin` (overview), `/admin/shops`, `/admin/products`, `/admin/users`,
 `/admin/orders`, `/admin/coupons`, `/admin/reports`, `/admin/activity`. Migration `V8__admin_panel.sql` adds the
 block reason and an index for the activity log.
+
+### After launch: questions, compare, recently viewed, installable app
+
+| URL / page | Who | What it does |
+|---|---|---|
+| `GET /api/products/{slug}/questions?page=` | anyone | Questions about a product, newest first, with the seller's answers ("Asked by Ravi K.") |
+| `POST /api/products/{slug}/questions` `{question}` | logged in | Ask the seller (10-300 characters, at most 3 unanswered per product); the shop owner gets a bell |
+| `GET /api/seller/questions?answered=`, `PUT .../{id}/answer` `{answer}` | the product's shop | Answer (or correct an answer); the shopper gets a bell + email once. Another shop = 403 |
+| `GET /api/products/cards?ids=3,17,42` | anyone | "Recently viewed": fresh cards in that order, only products still on sale, at most 12 |
+| `/compare?p=a,b` | anyone | Two products side by side (price - the cheaper one marked, lowest in 30 days, rating, colours, sizes, stock) |
+| Install | phone | `manifest.webmanifest` + `public/sw.js`: pages work offline from the saved app shell; `/api` is never cached |
+
+Pages: "Questions & answers" under the reviews, `/seller/questions`, a "Compare" tick and a "Recently viewed" row on
+the product page and the home page. The browser keeps only product ids / slugs (never prices). Migration
+`V14__product_questions.sql`. On the live demo the shared accounts may not post questions or answers (D13).
 
 ### Smart search (Phase 10)
 
@@ -281,13 +357,17 @@ How it stays correct:
 **Load test** (k6 in Docker, app in Docker, one laptop; `powershell -File load-tests\run-flash-load.ps1 [-Shape burst|spread]`,
 results in `load-tests/results`):
 
+Measured again on 14 Nov 2026:
+
 | Shape | Requests | Winners | Sold out | Errors | Oversell | p95 | median |
 |---|---|---|---|---|---|---|---|
-| burst - 5,000 users press at the same instant | 5,600 (~1,480/s) | **100** | 4,900 | **0** | **0** | 1,082 ms | 681 ms |
-| spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | 517 ms | 2.4 ms |
+| burst - 5,000 users press at the same instant | 5,000 (~1,280/s) | **100** | 4,900 | **0** | **0** | 1,084 ms | 686 ms |
+| spread - 1,000 users a second for 5 s | 5,000 (~1,000/s) | **100** | 4,900 | **0** | **0** | **308 ms** | 2.4 ms |
+| ceiling - the same burst at `/api/health` (does no work) | 5,000 (~1,560/s) | - | - | **0** | - | 246 ms | 175 ms |
 
-The database agreed after both runs: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven; speed in
-the burst is above the 500 ms target (see decision D8 in `docs/decisions.md`).
+The database agreed after every run: `sold = 100`, 100 claim rows, 100 different people. Correctness is proven. At a
+normal sale start (spread) p95 is 308 ms - inside the 500 ms target. In the worst case (burst) the claim waits about 4x
+longer than the laptop's own ceiling, because everyone queues for one locked row - see decision D8.
 
 ### Checkout & payments (Phase 4)
 
@@ -349,7 +429,8 @@ Swagger (`/swagger-ui.html`) is for the admin only. Every admin action is writte
 
 ### Demo logins
 
-Set `DEMO_PASSWORD` (and `JWT_SECRET`, 32+ characters) in `.env`; on start-up the backend gives that
+On the live site the login page has one-click **"Try it as ..."** buttons for Ravi and Chennai Mobiles (never the
+admin) - switched on with `DEMO_ONE_CLICK=true`, decision D13. On your laptop: set `DEMO_PASSWORD` (and `JWT_SECRET`, 32+ characters) in `.env`; on start-up the backend gives that
 password to the demo accounts. Empty = the demo accounts stay locked. The password is never in Git.
 
 | Email | Role | Use it for |
@@ -360,6 +441,19 @@ password to the demo accounts. Empty = the demo accounts stay locked. The passwo
 | `erode.organics@trivoko.test` | CUSTOMER | Shop application still pending - try the admin approval |
 
 Postman: `npx newman run postman/TriVoKo.postman_collection.json --env-var demoPassword=<your DEMO_PASSWORD>`
+
+## How it is deployed (Phase 12)
+
+| Piece | Where | How it gets there |
+|---|---|---|
+| MySQL | Aiven free (Bengaluru) | created once in the Aiven console; Flyway builds the tables on the first start |
+| API | Render free, Docker (`backend/Dockerfile`, Singapore) | `render.yaml` Blueprint; secrets typed in the Render dashboard, never in Git; health check `/api/health` |
+| Shop | Vercel (root `frontend/`) | `frontend/vercel.json`: `/api/*` -> Render, every other path -> `index.html`, security headers |
+| Awake + alarm | GitHub Actions `uptime.yml` | pings every 10 minutes; a failed run e-mails the owner |
+
+The `prod` profile reads everything from environment variables (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`,
+`FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `DEMO_PASSWORD`, `DEMO_ONE_CLICK`, Cloudinary and Stripe keys) and refuses to
+start without a real `JWT_SECRET`. Test the production image on a laptop: `docker build -t trivoko-backend backend`.
 
 ## Project folders
 

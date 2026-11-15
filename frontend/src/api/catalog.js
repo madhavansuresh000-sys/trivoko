@@ -16,3 +16,7 @@ export const fetchCategories = () => api.get('/categories').then((r) => r.data)
 
 /** A shop page header: { shopName, slug, city, description, sellingSince } */
 export const fetchSeller = (slug) => api.get(`/sellers/${encodeURIComponent(slug)}`).then((r) => r.data)
+
+/** "Recently viewed": fresh cards for these product ids, in this order (products no longer on sale are left out) */
+export const fetchCards = (ids) =>
+  ids.length === 0 ? Promise.resolve([]) : api.get('/products/cards', { params: { ids: ids.join(',') } }).then((r) => r.data)

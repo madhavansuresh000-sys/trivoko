@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 
 import { fetchProduct } from '../api/catalog'
 import AlsoBought from '../components/catalog/AlsoBought'
+import CompareButton from '../components/catalog/CompareButton'
 import PriceTag from '../components/catalog/PriceTag'
+import RecentlyViewed from '../components/catalog/RecentlyViewed'
 import ProductImage from '../components/catalog/ProductImage'
+import ProductQuestions from '../components/question/ProductQuestions'
 import ProductReviews from '../components/review/ProductReviews'
 import VariantPicker from '../components/catalog/VariantPicker'
 import Badge from '../components/ui/Badge'
@@ -18,6 +21,7 @@ import { Stars } from '../components/ui/StarRating'
 import WishlistButton from '../components/wishlist/WishlistButton'
 import useAsync, { describeError } from '../hooks/useAsync'
 import { formatRupees } from '../lib/money'
+import { recentlyViewed } from '../lib/recentlyViewed'
 import { addToCart } from '../store/cartSlice'
 import { notify } from '../store/notificationsSlice'
 import NotFoundPage from './NotFoundPage'
@@ -179,6 +183,11 @@ function ProductSkeleton() {
 export default function ProductPage() {
   const { slug } = useParams()
   const { data: product, loading, error } = useAsync(() => fetchProduct(slug), [slug])
+  const productId = product?.id
+  // remembered AFTER the page shows, so the row below lists the products seen before this one
+  useEffect(() => {
+    if (productId) recentlyViewed.add(productId)
+  }, [productId])
 
   if (loading) return <ProductSkeleton />
   if (error) {
@@ -208,6 +217,7 @@ export default function ProductPage() {
           {/* key: a different product starts with its own first variant */}
           <BuyBox key={product.id} product={product} />
           <SellerBox seller={product.seller} />
+          <CompareButton key={product.slug} slug={product.slug} />
         </div>
       </div>
       <section className="max-w-3xl">
@@ -216,6 +226,8 @@ export default function ProductPage() {
       </section>
       <AlsoBought slug={product.slug} />
       <ProductReviews slug={product.slug} />
+      <ProductQuestions slug={product.slug} shopName={product.seller.shopName} />
+      <RecentlyViewed key={product.id} exceptId={product.id} />
     </div>
   )
 }

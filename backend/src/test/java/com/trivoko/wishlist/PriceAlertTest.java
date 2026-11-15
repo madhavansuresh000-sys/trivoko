@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.trivoko.catalog.ProductService;
 import com.trivoko.support.Logins;
+import com.trivoko.support.PriceHistorySnapshot;
 
 /**
  * Phase 9 step 4 - price-drop alerts that are never spammy. Ravi saved the Volta V12 5G at its "from" price.
@@ -49,14 +50,19 @@ class PriceAlertTest {
 
 	private BigDecimal mrp;
 
+	private PriceHistorySnapshot history;
+
 	@BeforeEach
 	void raviSavedTheVolta() throws Exception {
+		history = PriceHistorySnapshot.take(jdbc);
 		volta = jdbc.queryForObject("SELECT id FROM products WHERE slug = 'volta-v12-5g'", Long.class);
 		Map<String, Object> v = jdbc.queryForMap(
 				"SELECT id, price, mrp FROM product_variants WHERE product_id = ? ORDER BY price, id LIMIT 1", volta);
 		cheapest = ((Number) v.get("id")).longValue();
 		price = (BigDecimal) v.get("price");
 		mrp = (BigDecimal) v.get("mrp");
+		// start from "this price never moved": the sample data gives the Volta some history (put back after)
+		jdbc.update("DELETE h FROM price_history h JOIN product_variants v ON v.id = h.variant_id WHERE v.product_id = ?", volta);
 		mvc.perform(put("/api/me/wishlist/" + volta).cookie(Logins.as(mvc, "ravi")).with(csrf()));
 	}
 
@@ -66,7 +72,7 @@ class PriceAlertTest {
 		jdbc.update("UPDATE products SET price_from = ?, mrp_from = ? WHERE id = ?", price, mrp, volta);
 		jdbc.update("UPDATE sellers SET status = 'APPROVED' WHERE id = (SELECT seller_id FROM products WHERE id = ?)",
 				volta);
-		jdbc.update("DELETE FROM price_history");
+		history.restore(); // not a plain DELETE: keep the sample history
 		jdbc.update("DELETE FROM audit_log WHERE action = 'PRICE_CHANGED'");
 		jdbc.update("DELETE FROM wishlist_items");
 		jdbc.update("DELETE FROM notifications");

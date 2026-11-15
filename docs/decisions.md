@@ -142,7 +142,7 @@ back only those rows. A "sale" is a package that is not cancelled or expired, th
 **Likes helper.** Search boxes go through `Likes.contains(text)`, which escapes `%` and `_` so typing `100%` searches
 for that text and cannot turn into a wildcard.
 
-## D8 - Flash sale: one atomic UPDATE in MySQL; Redis not added yet (Phase 7, 22 Oct 2026)
+## D8 - Flash sale: one atomic UPDATE in MySQL, no Redis (Phase 7, 22 Oct 2026; decided 14 Nov 2026)
 
 **The claim.** `UPDATE ... SET sold = sold + 1 WHERE id = ? AND sold < quantity AND <sale is live>` is a check and a
 change in one locked step. The wrong way - read `sold`, compare in Java, write `sold + 1` - lets two requests read 99
@@ -159,8 +159,23 @@ shapes. p95 = 1,082 ms when all 5,000 press at the same instant (median 681 ms),
 **Redis?** The plan said: if p95 is above 500 ms, try Redis `DECR` and measure again. The p95 is above, but the cost
 is everyone waiting in line for one hot row on a single laptop that also runs k6 and MySQL - the answer was always
 right. **Decision: keep MySQL only for now** (one fewer service to host, no second copy of the stock that could drift).
-**Still to do together:** run the `ceiling` shape (5,000 at `/api/health`) to see how much of the 1 s is the laptop
-itself; only if the claim is clearly slower than that ceiling, build the Redis `DECR` version and record both graphs.
+**Ceiling measured (14 Nov 2026, same laptop, all three shapes re-run):**
+
+| Shape | p95 | median | Result |
+|---|---|---|---|
+| burst - claim | 1,084 ms | 686 ms | 100 / 4,900 / 0 errors / 0 oversell |
+| spread - claim | **308 ms** | 2.4 ms | 100 / 4,900 / 0 errors / 0 oversell |
+| ceiling - the burst at `/api/health` | 246 ms | 175 ms | the laptop's own limit |
+
+So in the worst-case burst the claim is about 4x slower than the ceiling: the extra time is the queue for one locked
+row, not the laptop. At a normal sale start (spread) it is well inside the 500 ms target.
+
+**Decided 14 Nov 2026 - MADHAVAN chose: keep MySQL only.** Answers are always right; the realistic shape meets the
+target; Redis would be a second service to host and a second copy of the stock that can drift. If a real sale ever
+needed it, the next step is Redis `DECR` as a fast gate in front of the same UPDATE (MySQL stays the judge), measured
+with these same three shapes. Graph: `docs/k6-flash-sale.png`.
+(The k6 script now skips one extra iteration that "1,000 a second for 5 s" can start at the very end - it reused
+person #1, and the app rightly answered "already claimed".)
 
 ## D9 - Returns: a state machine, money fixed at asking, refund in its own transaction (Phase 8, 22 Oct 2026)
 
@@ -258,3 +273,43 @@ strong protection would need a shared secret between Vercel and Render (later).
 our own address - so the dark-mode script moved from `index.html` into `public/theme.js`; photos from
 `res.cloudinary.com`; uploads to `api.cloudinary.com`), HSTS, nosniff, Referrer-Policy, Permissions-Policy, no
 framing. `npm run preview` sends the same headers, so a CSP mistake shows on the laptop first.
+
+## D13 - One-click demo logins and the uptime check (Phase 12, 4 Nov 2026) - DRAFT, MADHAVAN to confirm
+
+**Demo logins.** A recruiter will not e-mail us for a password, so the login page can show "Try it as Ravi"
+(customer) and "Try it as Chennai Mobiles" (seller) - one click, the same httpOnly cookie as a normal login
+(`DemoLoginController`). Like the demo phone on a shop counter: anyone may use it, but it is chained to the table.
+
+- **Never the admin**: one stranger could block every shop on the live demo. The admin login stays behind DEMO_PASSWORD.
+- **Off unless asked**: `DEMO_ONE_CLICK` (default `false`); off = empty list and 404, as if the URLs did not exist.
+  Also off while DEMO_PASSWORD is empty, so it can never open accounts that are meant to be locked.
+- A blocked demo account stays blocked; the POST still needs the CSRF token.
+- **Shared, so read-mostly** (`DemoGuard`, added after launch): the shared accounts may shop, pay on the test page,
+  pack, ship and return, but writes that other visitors would SEE - reviews, product create/edit/photos, product
+  questions and answers - answer 403 "create a free account to try this". Other accounts are never limited.
+- **Shelves refilled at night** (`DemoRestockJob`, V13 `demo_stock`): on the demo server only, at 03:30 every sample
+  size goes back up to its starting stock (never down; sold-out-on-purpose sizes and later products untouched).
+  Simple, at a price: units a seller moved into a flash sale come back to normal stock too.
+- If someone still misbehaves, the admin blocks the account (the buttons then answer "not available").
+  Proposed: switch it ON for the job hunt.
+
+**Uptime check** = `.github/workflows/uptime.yml`: GitHub Actions calls `/api/health` every 10 minutes (keeps the
+free Render server awake) and the Vercel `/api/health` (proves the whole path works). A failed run e-mails the repo
+owner - a free alarm. Limits: GitHub may start late, runs only from `main`, and pauses schedules after 60 days
+without a commit. 744 hours awake a month fits Render's 750 free hours for one service.
+
+## D14 - After launch: questions, compare, recently viewed, installable app (4 Nov 2026)
+
+MADHAVAN asked for "all" four improvement directions; these defaults were chosen (change any of them later):
+
+- **Product questions** get their own module `question` (owns `product_questions`), not part of reviews: anyone
+  logged in may ask (a review needs a delivered package), only the product's shop answers. `seller_id` is copied
+  in when the question is asked, so the seller's list needs no join into the catalogue's tables (module rule).
+  Spam limit: 3 unanswered questions per shopper per product. The shopper's bell + email rings once - a corrected
+  answer does not ring again.
+- **Recently viewed** and **compare** live in the browser (localStorage) as ids / slugs only - like the guest cart,
+  prices always come fresh from the server, so a stored old price can never be shown or used.
+- **Installable app (PWA)** with a hand-written 50-line service worker instead of a plugin: pages network-first
+  with the saved app shell for offline, hashed `/assets` cache-first, and `/api` never cached (prices, stock, orders
+  and logins must be live). Only the production build registers it; `npm run dev` stays plain.
+

@@ -28,6 +28,12 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 	@Query("update ProductVariant v set v.stock = v.stock + :qty where v.id = :id")
 	int giveBack(@Param("id") Long id, @Param("qty") int qty);
 
+	/** Demo server only (V13): stock that visitors bought goes back up to the sample level; never lowers anything. */
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query(value = "UPDATE product_variants SET stock = demo_stock WHERE demo_stock IS NOT NULL AND stock < demo_stock",
+			nativeQuery = true)
+	int restockToDemoLevel();
+
 	/** Seller dashboard: variants of my LIVE products that are running out (lowest first). */
 	@Query("""
 			select v from ProductVariant v join fetch v.product p

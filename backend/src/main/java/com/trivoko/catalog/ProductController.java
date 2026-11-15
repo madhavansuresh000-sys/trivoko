@@ -79,6 +79,17 @@ public class ProductController {
 		return productService.brands(category);
 	}
 
+	/** Most cards one call may ask for (the "recently viewed" row shows at most 12). */
+	static final int MAX_CARDS = 12;
+
+	/** After launch: "Recently viewed" keeps product ids in the browser; prices and stock always come from here. */
+	@GetMapping("/products/cards")
+	@Operation(summary = "Cards for these product ids, in this order; products no longer on sale are left out")
+	public List<ProductCard> cards(
+			@Parameter(description = "Up to 12 product ids", example = "3,17,42") @RequestParam List<Long> ids) {
+		return productService.liveCardsInOrder(ids.stream().limit(MAX_CARDS).toList());
+	}
+
 	@GetMapping("/products/{slug}")
 	@Operation(summary = "One product with its variants, photos and seller")
 	public ProductDetail get(@PathVariable String slug) {

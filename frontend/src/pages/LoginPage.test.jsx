@@ -1,11 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { loginRequest } from '../api/auth'
+import { demoAccountsRequest, demoLoginRequest, loginRequest } from '../api/auth'
 import { fetchCart, mergeCart } from '../api/cart'
 import { guestCart } from '../lib/guestCart'
 import authReducer from '../store/authSlice'
@@ -14,7 +14,10 @@ import notificationsReducer from '../store/notificationsSlice'
 import LoginPage from './LoginPage'
 
 // no real server in these tests: the calls are replaced by mocks we control
-vi.mock('../api/auth', () => ({ loginRequest: vi.fn(), fetchMe: vi.fn(), logoutRequest: vi.fn(), registerRequest: vi.fn() }))
+vi.mock('../api/auth', () => ({
+  loginRequest: vi.fn(), fetchMe: vi.fn(), logoutRequest: vi.fn(), registerRequest: vi.fn(),
+  demoAccountsRequest: vi.fn(), demoLoginRequest: vi.fn(),
+}))
 vi.mock('../api/cart')
 
 const ravi = { id: 2, fullName: 'Ravi Kumar', email: 'ravi@trivoko.test', roles: ['CUSTOMER'], seller: null }
@@ -49,6 +52,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    vi.mocked(demoAccountsRequest).mockResolvedValue([]) // the laptop and CI: demo buttons switched off
   })
 
   it('shows what is missing and does not call the server', async () => {
@@ -94,5 +98,27 @@ describe('LoginPage', () => {
     const { user } = renderLogin('/login?next=//evil.example')
     await fillAndSubmit(user, 'ravi@trivoko.test', 'secret123')
     expect(await screen.findByText('Home page')).toBeInTheDocument()
+  })
+
+  it('shows no demo buttons when the server has them switched off', async () => {
+    renderLogin()
+    await waitFor(() => expect(demoAccountsRequest).toHaveBeenCalled())
+    expect(screen.queryByText(/Try it as/)).not.toBeInTheDocument()
+  })
+
+  // Phase 12 step 4: a recruiter looks around without a password
+  it('one click on a demo account logs in and goes on to ?next=', async () => {
+    vi.mocked(demoAccountsRequest).mockResolvedValue([
+      { key: 'customer', email: 'ravi@trivoko.test', name: 'Ravi', tryThis: 'Customer - shop, pay, track, return' },
+    ])
+    vi.mocked(demoLoginRequest).mockResolvedValue(ravi)
+    vi.mocked(fetchCart).mockResolvedValue(cartOf(0))
+    const { user, store } = renderLogin('/login?next=/cart')
+    await user.click(await screen.findByRole('button', { name: /Try it as Ravi/ }))
+
+    expect(await screen.findByText('Cart page')).toBeInTheDocument()
+    expect(demoLoginRequest).toHaveBeenCalledWith('customer')
+    expect(loginRequest).not.toHaveBeenCalled()
+    expect(store.getState().auth.user.email).toBe('ravi@trivoko.test')
   })
 })

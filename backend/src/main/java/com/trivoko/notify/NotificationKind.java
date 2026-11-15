@@ -10,5 +10,7 @@ public enum NotificationKind {
 	/** Phase 8: the customer's money for a returned item is on its way. */
 	RETURN_REFUNDED,
 	/** Phase 9: a wishlisted product got at least 1% cheaper. */
-	PRICE_DROP
+	PRICE_DROP,
+	/** After launch: a shopper asked about a product (to the seller) / the seller answered (to the shopper). */
+	QUESTION_ASKED, QUESTION_ANSWERED
 }

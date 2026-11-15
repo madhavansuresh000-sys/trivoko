@@ -12,6 +12,7 @@ import { loadWishlistIds } from './store/wishlistSlice'
 // loaded only when someone opens them (React.lazy = code splitting)
 // Phase 11 (Lighthouse): only the home page is in the first download; every other page comes when it is opened
 const CartPage = lazy(() => import('./pages/CartPage'))
+const ComparePage = lazy(() => import('./pages/ComparePage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const ProductPage = lazy(() => import('./pages/ProductPage'))
@@ -48,6 +49,7 @@ const SellerFlashPage = lazy(() => import('./pages/seller/SellerFlashPage'))
 const WishlistPage = lazy(() => import('./pages/WishlistPage'))
 const MyReturnsPage = lazy(() => import('./pages/MyReturnsPage'))
 const SellerReturnsPage = lazy(() => import('./pages/seller/SellerReturnsPage'))
+const SellerQuestionsPage = lazy(() => import('./pages/seller/SellerQuestionsPage'))
 const AdminReturnsPage = lazy(() => import('./pages/admin/AdminReturnsPage'))
 
 export default function App() {
@@ -72,6 +74,7 @@ export default function App() {
         <Route path="products/:slug" element={<ProductPage />} />
         <Route path="shops/:slug" element={<ShopPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="compare" element={<ComparePage />} />
         <Route path="flash" element={<FlashSalePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
@@ -93,6 +96,7 @@ export default function App() {
             <Route index element={<SellerDashboardPage />} />
             <Route path="orders" element={<SellerPackagesPage />} />
             <Route path="returns" element={<SellerReturnsPage />} />
+            <Route path="questions" element={<SellerQuestionsPage />} />
             <Route path="products" element={<SellerProductsPage />} />
             <Route path="products/new" element={<ProductEditorPage />} />
             <Route path="products/:id" element={<ProductEditorPage />} />

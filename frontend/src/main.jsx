@@ -17,3 +17,11 @@ createRoot(document.getElementById('root')).render(
     </Provider>
   </StrictMode>,
 )
+
+// After launch: the service worker makes the shop installable and lets it open offline. Only in the built site -
+// in `npm run dev` it would keep serving old files while you edit.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {}) // no service worker = a normal website, nothing breaks
+  })
+}

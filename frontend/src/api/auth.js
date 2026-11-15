@@ -22,3 +22,9 @@ export const registerRequest = (form) => api.post('/auth/register', form).then((
 
 /** The server deletes the cookie. */
 export const logoutRequest = () => api.post('/auth/logout')
+
+/** Phase 12: the one-click demo accounts, e.g. [{ key: 'customer', email, name, tryThis }] - empty when switched off */
+export const demoAccountsRequest = () => api.get('/auth/demo-accounts').then((r) => r.data).catch(() => [])
+
+/** 'customer' | 'seller' -> logged in as that demo account (same cookie as a normal login) */
+export const demoLoginRequest = (key) => api.post(`/auth/demo-login/${key}`).then((r) => r.data)
