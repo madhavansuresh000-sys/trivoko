@@ -171,3 +171,4 @@ Date        Time   File                                                         
 2026-11-14  1310   k6 re-run burst/spread/ceiling (all 100/4900/0); D8 ceiling measured, recommendation keep MySQL; docs/k6-flash-sale.png redrawn; README screenshots (8171d7f)
 2026-11-14  1320   D8 decided by MADHAVAN: keep MySQL only (no Redis)
 2026-11-15  1245   MERGED phase-12-after-launch-extras into main (421fc63, by Claude at MADHAVAN's request - no PR was created in the pane). Build work complete; launch left.
+2026-11-15  1953   Flaky CI fixed: ReturnRefundTest deadlock (FK shared lock + update) -> lockById FOR UPDATE (67d08d5); merged into main by Claude at MADHAVAN's request
