@@ -170,3 +170,4 @@ Date        Time   File                                                         
 2026-11-14  1246   README badges + docs/er-diagram.md + docs/k6-flash-sale.png (4bb4cec); 00_Project_Documents\TriVoKo_Explain_It_Back_Phases_9-12_2026-11-14_1244.docx/.pdf (8 pages, source tools/plan-src/content-explain)
 2026-11-14  1310   k6 re-run burst/spread/ceiling (all 100/4900/0); D8 ceiling measured, recommendation keep MySQL; docs/k6-flash-sale.png redrawn; README screenshots (8171d7f)
 2026-11-14  1320   D8 decided by MADHAVAN: keep MySQL only (no Redis)
+2026-11-15  1245   MERGED phase-12-after-launch-extras into main (421fc63, by Claude at MADHAVAN's request - no PR was created in the pane). Build work complete; launch left.
