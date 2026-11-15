@@ -212,8 +212,19 @@ public class ReturnService {
 	/** The courier has the item (seller button). Its own small transaction: the refund comes next, separately. */
 	@Transactional
 	public void markPickedUp(Long sellerId, Long returnId) {
-		moveTo(ofSeller(sellerId, returnId), ReturnStatus.PICKED_UP, ReturnEvent.Actor.SELLER,
+		moveTo(lockedOfSeller(sellerId, returnId), ReturnStatus.PICKED_UP, ReturnEvent.Actor.SELLER,
 				"Picked up by the courier");
+	}
+
+	/** Locked (FOR UPDATE) and the seller's own - someone else's return is "not found" (404), as in ofSeller. */
+	private ReturnRequest lockedOfSeller(Long sellerId, Long returnId) {
+		return returns.lockById(returnId)
+			.filter(r -> r.getSellerId().equals(sellerId))
+			.orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
+	}
+
+	private ReturnRequest locked(Long returnId) {
+		return returns.lockById(returnId).orElseThrow(() -> new ResourceNotFoundException("Return", returnId));
 	}
 
 	/**
@@ -229,7 +240,7 @@ public class ReturnService {
 	 */
 	@Transactional
 	public ReturnView refund(Long returnId) {
-		ReturnRequest ret = any(returnId);
+		ReturnRequest ret = locked(returnId); // the queue: see ReturnRequestRepository.lockById
 		ReturnableLine line = orders.returnableLine(ret.getCustomerId(), ret.getOrderItemId());
 		String rupees = Money.round(ret.getRefundAmount()).toPlainString();
 		moveTo(ret, ReturnStatus.REFUNDED, ReturnEvent.Actor.SYSTEM, "Refund of Rs " + rupees + " started");
@@ -246,7 +257,7 @@ public class ReturnService {
 	/** The refund call failed: note it on the timeline (status REFUND_FAILED) for the admin to retry. */
 	@Transactional
 	public ReturnView markRefundFailed(Long returnId, String why) {
-		ReturnRequest ret = any(returnId);
+		ReturnRequest ret = locked(returnId);
 		String note = "Refund failed - TriVoKo will retry" + (why == null ? "" : " (" + shorten(why) + ")");
 		if (ret.getStatus() == ReturnStatus.REFUND_FAILED) {
 			ret.addEvent(ReturnStatus.REFUND_FAILED, ReturnEvent.Actor.SYSTEM, note); // failed again: one more line
