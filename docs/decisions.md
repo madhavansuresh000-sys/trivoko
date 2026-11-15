@@ -199,6 +199,13 @@ as all different, so SALE lines (no return) use 0 and still cannot repeat.
 **Snapshot (V11).** A return copies order number, product, variant, quantity and shop from the bill, like
 `order_items` itself, so the seller and admin lists need no lookups per row.
 
+**Lock first (added 15 Nov 2026).** `@Version` alone stopped a double refund, but not a MySQL **deadlock**: each of ten
+simultaneous "Picked up" clicks inserted a timeline row (a shared lock on the return through the foreign key) and then
+updated the return (an exclusive lock), so clicks waited for each other and MySQL cancelled one - once in CI it was the
+real refund (REFUND_FAILED, refund 0). Now picked-up, refund and refund-failed first take `SELECT ... FOR UPDATE`
+(`ReturnRequestRepository.lockById`): the clicks queue, the first wins, the rest get 409. Measured: the test repeated
+30 times went from 254 "Deadlock found" log lines to 0.
+
 ## D10 - Price-drop alerts: mark on change, decide in a job (Phase 9, 27 Oct 2026)
 
 **Why not alert at once?** A seller often saves a price several times in a row (typo, second thought). Alerting inside
